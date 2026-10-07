@@ -84,11 +84,14 @@ Tendedero runs entirely on your Mac, and your screenshots never leave it.
 ## Install
 
 Download the disk image from the [latest release](../../releases/latest),
-open it and drag Tendedero to Applications.
+open it and drag Tendedero to Applications. Or install it with Homebrew:
 
-Tendedero is not notarized by Apple yet, so the first time macOS will say it
-cannot verify it. Open System Settings, go to Privacy & Security, and click
-Open Anyway next to the message about Tendedero. You only need to do this once.
+```sh
+brew install --cask alejandrobujan/tap/tendedero
+```
+
+Tendedero is signed with a Developer ID and notarized by Apple, so it opens
+like any other app.
 
 <br>
 
