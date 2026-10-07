@@ -65,3 +65,17 @@ rm -f "$DMG"
 hdiutil convert -quiet "$RW" -format UDZO -imagekey zlib-level=9 -o "$DMG"
 rm -rf "$WORK"
 echo "Built $DMG"
+
+# Keep the Homebrew cask in step: new version and the checksum of this image.
+# Set TAP_DIR to the tap checkout; nothing is committed or pushed here, so the
+# cask never points at a release that is not on GitHub yet.
+TAP_DIR="${TAP_DIR:-$HOME/homebrew-tap}"
+CASK="$TAP_DIR/Casks/tendedero.rb"
+if [ -f "$CASK" ]; then
+  SHA="$(shasum -a 256 "$DMG" | awk '{print $1}')"
+  sed -i '' -E "s/^  version \".*\"/  version \"$VERSION\"/; s/^  sha256 \".*\"/  sha256 \"$SHA\"/" "$CASK"
+  echo "Updated $CASK to $VERSION ($SHA)"
+  echo "After publishing the release: commit and push the tap."
+else
+  echo "No Homebrew cask at $CASK, skipped."
+fi
