@@ -62,6 +62,15 @@ Same shortcuts. Same muscle memory. Just less mess.
 
 <br>
 
+## Copied images too.
+
+Take a screenshot with <kbd>⌃</kbd> held, or Copy Image in a browser, and it
+hangs on the line like any other. Tendedero asks once on first launch, and
+you can change it any time from the menu bar. Only images, never text, and
+anything a password manager marks as private is left alone.
+
+<br>
+
 ## Private by design.
 
 No account. No network. No analytics.
@@ -121,6 +130,7 @@ so macOS asks again for access to the Desktop after each rebuild.
 | `PeggedView.swift` | One photo: glass frame, clip, swing and breeze |
 | `GrabArea.swift` | Click, long press, drag and drop |
 | `ScreenshotWatcher.swift` | Notices new screenshots |
+| `ClipboardWatcher.swift` | Notices images copied to the clipboard |
 | `Inbox.swift` | Takes over screenshot settings and puts them back |
 | `Markup.swift` | Opens the system Markup editor and saves the result |
 | `FullScreen.swift` | Knows when to stay hidden |
