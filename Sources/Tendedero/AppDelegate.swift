@@ -56,7 +56,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         restoreSettingsOnTermination()
         startWatcher()
         clipboardWatcher = ClipboardWatcher { [weak self] url in self?.hangCapture(url) }
-        if ClipboardWatcher.isEnabled { clipboardWatcher.start() }
+        if ClipboardWatcher.isEnabled || ClipboardWatcher.textEnabled { clipboardWatcher.start() }
 
         hotKey = HotKey(keyCode: kVK_ANSI_T, modifiers: controlKey | optionKey) { [weak self] in
             self?.toggle()
@@ -162,6 +162,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         if let icon = NSImage(named: "Tendedero") ?? NSApp.applicationIconImage { alert.icon = icon }
         NSApp.activate(ignoringOtherApps: true)
         if alert.runModal() == .alertFirstButtonReturn { setInbox(true) }
+    }
+
+    private func updateClipboardWatcher() {
+        if ClipboardWatcher.isEnabled || ClipboardWatcher.textEnabled { clipboardWatcher.start() } else { clipboardWatcher.stop() }
     }
 
     /// Asked once, after the screenshot offer. Watching the clipboard is opt in.
@@ -503,11 +507,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
         let clipboard = ClosureMenuItem(L("Hang copied images")) { [weak self] in
             ClipboardWatcher.isEnabled.toggle()
-            if ClipboardWatcher.isEnabled { self?.clipboardWatcher.start() } else { self?.clipboardWatcher.stop() }
+            self?.updateClipboardWatcher()
         }
         clipboard.state = ClipboardWatcher.isEnabled ? .on : .off
         clipboard.toolTip = L("Images you copy hang on the line too")
         menu.addItem(clipboard)
+
+        let clipText = ClosureMenuItem(L("Hang copied text")) { [weak self] in
+            ClipboardWatcher.textEnabled.toggle()
+            self?.updateClipboardWatcher()
+        }
+        clipText.state = ClipboardWatcher.textEnabled ? .on : .off
+        clipText.toolTip = L("Text you copy hangs as a note card")
+        menu.addItem(clipText)
 
         menu.addItem(ClosureMenuItem(L("Open screenshots folder")) { [weak self] in
             guard let self else { return }

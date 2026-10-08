@@ -12,12 +12,19 @@ final class ClipboardWatcher {
     static var ownChangeCount = -1
 
     private static let enabledKey = "clipboardEnabled"
+    private static let textKey = "clipboardTextEnabled"
     private static let offeredKey = "clipboardOffered"
 
     /// Off until the user turns it on: reading the clipboard is their call.
     static var isEnabled: Bool {
         get { UserDefaults.standard.bool(forKey: enabledKey) }
         set { UserDefaults.standard.set(newValue, forKey: enabledKey) }
+    }
+
+    /// Copied text hangs too, as a little note card.
+    static var textEnabled: Bool {
+        get { UserDefaults.standard.bool(forKey: textKey) }
+        set { UserDefaults.standard.set(newValue, forKey: textKey) }
     }
 
     /// Whether we already asked, so the offer appears only once.
@@ -62,6 +69,7 @@ final class ClipboardWatcher {
         // Files copied in Finder: hang the image files themselves. Finder also
         // puts the file's icon on the clipboard, which must not be hung.
         if types.contains(.fileURL) {
+            guard Self.isEnabled else { return }
             let urls = pb.readObjects(forClasses: [NSURL.self], options: [.urlReadingFileURLsOnly: true]) as? [URL] ?? []
             for url in urls where Self.imageExtensions.contains(url.pathExtension.lowercased()) {
                 onImage(url)
@@ -69,19 +77,27 @@ final class ClipboardWatcher {
             return
         }
 
-        guard let data = pngData(from: pb) else { return }
+        if Self.isEnabled, let data = pngData(from: pb) {
+            save(data, ext: "png")
+        } else if Self.textEnabled, let text = pb.string(forType: .string),
+                  !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            save(Data(text.utf8), ext: "txt")
+        }
+    }
+
+    private func save(_ data: Data, ext: String) {
         try? FileManager.default.createDirectory(at: Inbox.folder, withIntermediateDirectories: true)
-        var url = Inbox.folder.appendingPathComponent("Clipboard \(Self.stamp()).png")
+        var url = Inbox.folder.appendingPathComponent("Clipboard \(Self.stamp()).\(ext)")
         var n = 2
         while FileManager.default.fileExists(atPath: url.path) {
-            url = Inbox.folder.appendingPathComponent("Clipboard \(Self.stamp()) \(n).png")
+            url = Inbox.folder.appendingPathComponent("Clipboard \(Self.stamp()) \(n).\(ext)")
             n += 1
         }
         do {
             try data.write(to: url, options: .atomic)
             onImage(url)
         } catch {
-            log.error("Could not save clipboard image: \(error.localizedDescription, privacy: .public)")
+            log.error("Could not save clipboard \(ext, privacy: .public): \(error.localizedDescription, privacy: .public)")
         }
     }
 
