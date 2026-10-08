@@ -50,6 +50,7 @@ Lleva el puntero a la barra de menús y la cuerda baja. Apártalo y desaparece.
 | Arrastrar a la Papelera o hacer clic en la cruz | Te deshaces de ella. |
 | Dejar el puntero sobre una foto<sup>2</sup> | Se amplía en su sitio y las de al lado se apartan. |
 | Desplazar sobre una foto ampliada<sup>2</sup> | La amplía más o menos. |
+| Deslizar de lado, <kbd>⇧</kbd> y desplazar, o las flechas de los extremos | Recorre una cuerda más larga que la pantalla<sup>3</sup>. Lo más nuevo, a la derecha. |
 | Dejar el puntero en la barra de menús | Baja la cuerda en esa pantalla. |
 | Hacer clic en cualquier sitio de la barra de menús | Recoge la cuerda. |
 | <kbd>⌃</kbd>&thinsp;<kbd>⌥</kbd>&thinsp;<kbd>T</kbd> | Muestra u oculta la cuerda. |
@@ -150,6 +151,8 @@ Las traducciones están en `Sources/Tendedero/Resources`, con una carpeta
 1. La primera vez que lo abres, Tendedero te ofrece encargarse de tus capturas. Si aceptas, desactiva la miniatura flotante y guarda las capturas nuevas en su propia carpeta; son dos ajustes que también encontrarás en Opciones de Cmd+Mayús+5. Tus ajustes anteriores se guardan y vuelven a su sitio al cerrar Tendedero o al desactivar la opción desde la barra de menús. Mientras una app está a pantalla completa, Tendedero se oculta solo.
 <br>
 2. Con Ampliar al pasar el puntero activado desde la barra de menús. Viene desactivado.
+<br>
+3. La cuerda guarda 30 elementos por defecto. Elige entre 10 y 500 en Guardar en la cuerda, en la barra de menús; cuando se llena, cae el más antiguo.
 </sub>
 
 <br>

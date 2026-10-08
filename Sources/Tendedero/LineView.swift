@@ -52,17 +52,35 @@ struct LineView: View {
                         .transition(.opacity)
                 }
 
-                ForEach(Array(line.items.enumerated()), id: \.element.id) { index, item in
+                // Only what is on screen, or about to be, is drawn.
+                ForEach(Array(line.items.enumerated()).filter { line.place(of: $0.offset, width: width).overflow < 2 },
+                        id: \.element.id) { index, item in
                     let shift = zoomIndex.map { index < $0 ? -push : (index > $0 ? push : 0) } ?? 0
-                    let x = Layout.x(index: index, count: line.items.count, width: width) + shift
+                    let place = line.place(of: index, width: width)
+                    let x = place.x + shift
                     let ropeY = Layout.ropeY(x: x, width: width)
-                    PeggedView(item: item, line: line)
+                    PeggedView(item: item, line: line, hidden: place.overflow >= 0.5)
+                        .opacity(Double(max(0, 1 - place.overflow)))
                         .frame(width: Layout.cardWidth, height: Layout.panelHeight - ropeY, alignment: .top)
                         .position(x: x, y: ropeY - Layout.pinAbove + (Layout.panelHeight - ropeY) / 2)
                         .zIndex(line.zoomedID == item.id ? 1 : 0)
                 }
+
+                // Mouse friendly: arrows at the ends step through a long line.
+                if line.maxOffset > 0 {
+                    let y = Layout.ropeY(x: 40, width: width) + 70
+                    LineArrow(symbol: "chevron.left", id: LineArrow.olderID, line: line) { line.step(by: 3) }
+                        .position(x: 40, y: y)
+                        .opacity(line.offset < line.maxOffset ? 1 : 0)
+                        .zIndex(2)
+                    LineArrow(symbol: "chevron.right", id: LineArrow.newerID, line: line) { line.step(by: -3) }
+                        .position(x: width - 40, y: y)
+                        .opacity(line.offset > 0 ? 1 : 0)
+                        .zIndex(2)
+                }
             }
             .animation(.spring(response: 0.55, dampingFraction: 0.78), value: line.items.map(\.id))
+            .animation(.interactiveSpring(response: 0.3, dampingFraction: 0.86), value: line.offset)
             // The neighbours of a zoomed photo slide aside, like the Dock.
             .animation(.spring(response: 0.34, dampingFraction: 0.78), value: line.zoomedID)
             .animation(.easeInOut(duration: 0.3), value: line.items.isEmpty)
@@ -74,6 +92,51 @@ struct LineView: View {
         }
         .onPreferenceChange(HitRectsKey.self) { rects in
             line.hitRects = rects
+        }
+    }
+}
+
+/// A round glass button at one end of the line. It reports its frame like
+/// a card does, so the panel catches clicks over it.
+private struct LineArrow: View {
+    static let olderID = UUID()
+    static let newerID = UUID()
+
+    let symbol: String
+    let id: UUID
+    @ObservedObject var line: Line
+    let action: () -> Void
+
+    var body: some View {
+        let active = id == LineArrow.olderID ? line.offset < line.maxOffset : line.offset > 0
+        Image(systemName: symbol)
+            .font(.system(size: 13, weight: .bold))
+            .foregroundStyle(.primary)
+            .frame(width: 34, height: 34)
+            .glassFrame(circle: true)
+            .shadow(color: .black.opacity(0.18), radius: 6, y: 3)
+            .overlay(ClickArea(action: action))
+            .background(
+                GeometryReader { g in
+                    Color.clear.preference(key: HitRectsKey.self, value: active ? [id: g.frame(in: .global)] : [:])
+                }
+            )
+            .allowsHitTesting(active)
+    }
+}
+
+/// Takes a click even though the panel never becomes active.
+struct ClickArea: NSViewRepresentable {
+    let action: () -> Void
+    func makeNSView(context: Context) -> ClickView { let v = ClickView(); v.action = action; return v }
+    func updateNSView(_ view: ClickView, context: Context) { view.action = action }
+
+    final class ClickView: NSView {
+        var action: (() -> Void)?
+        override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
+        override func mouseDown(with event: NSEvent) {}
+        override func mouseUp(with event: NSEvent) {
+            if bounds.contains(convert(event.locationInWindow, from: nil)) { action?() }
         }
     }
 }

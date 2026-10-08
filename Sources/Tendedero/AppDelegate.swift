@@ -242,7 +242,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private func cardFrame(for id: UUID) -> CGRect? {
         guard let index = line.items.firstIndex(where: { $0.id == id }) else { return nil }
         let width = panel.frame.width
-        let x = Layout.x(index: index, count: line.items.count, width: width)
+        let x = line.place(of: index, width: width).x
         let viewTop = Layout.ropeY(x: x, width: width) - Layout.pinAbove
         let cardTop = viewTop + PeggedView.cardOffsetBelowTop
         let size = PeggedView.cardSize(for: line.items[index].thumb.size)
@@ -375,6 +375,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     /// reaches the window under the pointer.
     private func watchScrollZoom() {
         let monitor = NSEvent.addLocalMonitorForEvents(matching: .scrollWheel) { [weak self] event in
+            // Sideways, or with Shift held on a mouse: scroll along the line.
+            if abs(event.scrollingDeltaX) > abs(event.scrollingDeltaY) || event.modifierFlags.contains(.shift) {
+                let used = MainActor.assumeIsolated { self?.scrollLine(with: event) ?? false }
+                return used ? nil : event
+            }
             var amount = event.hasPreciseScrollingDeltas ? event.scrollingDeltaY * 0.01 : event.scrollingDeltaY * 0.1
             // Fingers up zooms in, whichever way scrolling is set.
             if event.isDirectionInvertedFromDevice { amount = -amount }
@@ -382,6 +387,25 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             return used ? nil : event
         }
         if let monitor { clickMonitors.append(monitor) }
+    }
+
+    /// A long line scrolls sideways and follows the fingers, like a page:
+    /// pull it right to see older items, left to come back to the newest.
+    /// A mouse wheel with Shift steps one card per notch.
+    private func scrollLine(with e: NSEvent) -> Bool {
+        guard isRevealed, line.maxOffset > 0 else { return false }
+        if !e.hasPreciseScrollingDeltas {
+            let notch = e.scrollingDeltaX != 0 ? e.scrollingDeltaX : e.scrollingDeltaY
+            if notch != 0 { line.step(by: notch < 0 ? 1 : -1) }
+            return true
+        }
+        var fingers = e.scrollingDeltaX / Layout.spacing
+        if !e.isDirectionInvertedFromDevice { fingers = -fingers }
+        line.rotate(by: fingers)
+        if e.phase == .ended || e.momentumPhase == .ended || (e.phase.isEmpty && e.momentumPhase.isEmpty) {
+            line.settle()
+        }
+        return true
     }
 
     /// Returns true when there was a photo under the pointer to zoom.
@@ -471,7 +495,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     private func updateCapacity() {
         let usable = panel.frame.width - 200
-        line.maxItems = max(3, min(12, Int(usable / Layout.spacing)))
+        line.visibleSlots = max(3, Int(usable / Layout.spacing))
+        line.maxItems = Line.keepCount
+        line.trim()
     }
 
     // MARK: Menu bar
@@ -508,6 +534,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         inbox.state = Inbox.isEnabled ? .on : .off
         inbox.toolTip = L("Screenshots hang instantly and skip the Desktop")
         menu.addItem(inbox)
+
+        let keep = NSMenuItem(title: L("Keep on line"), action: nil, keyEquivalent: "")
+        let keepMenu = NSMenu()
+        for n in Line.keepChoices {
+            let item = ClosureMenuItem(String(format: L("%d items"), n)) { [weak self] in
+                Line.keepCount = n
+                self?.updateCapacity()
+            }
+            item.state = Line.keepCount == n ? .on : .off
+            keepMenu.addItem(item)
+        }
+        keep.submenu = keepMenu
+        menu.addItem(keep)
 
         menu.addItem(ClosureMenuItem(L("Open screenshots folder")) { [weak self] in
             guard let self else { return }

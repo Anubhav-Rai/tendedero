@@ -5,6 +5,8 @@ import SwiftUI
 struct PeggedView: View {
     let item: Pegged
     @ObservedObject var line: Line
+    /// Scrolled out of view at the ends of a long line.
+    var hidden = false
 
     @State private var swing: Double = 0
     @State private var arrived = false
@@ -28,6 +30,7 @@ struct PeggedView: View {
         .opacity(item.falling || item.flying ? 0 : (arrived ? 1 : 0))
         .transaction { t in if item.falling { t.animation = nil } }
         .animation(.easeOut(duration: 0.16), value: item.flying)
+        .allowsHitTesting(!hidden)
         .onAppear(perform: arrive)
         .onChange(of: item.flying) { was, now in if was && !now { land() } }
         .onChange(of: line.gust) { _, _ in breeze() }
@@ -55,7 +58,7 @@ struct PeggedView: View {
     private var photoSize: CGSize { Self.photoSize(for: item.thumb.size, zoom: zoomed ? line.zoomLevel : 1) }
 
     private var card: some View {
-        Image(nsImage: item.thumb)
+        Image(nsImage: zoomed && line.sharp?.id == item.id ? line.sharp!.image : item.thumb)
             .resizable()
             .interpolation(.high)
             .frame(width: photoSize.width, height: photoSize.height)
@@ -115,14 +118,15 @@ struct PeggedView: View {
             .background(
                 GeometryReader { g in
                     Color.clear.preference(key: HitRectsKey.self,
-                                           value: item.falling ? [:] : [item.id: g.frame(in: .global)])
+                                           value: item.falling || hidden ? [:] : [item.id: g.frame(in: .global)])
                 }
             )
     }
 
     private func arrive() {
         // A capture that flew in is already in place; the flight did the arriving.
-        if item.flying {
+        // Scrolled back into view: it has been hanging there all along.
+        if item.flying || Date().timeIntervalSince(item.hungAt) > 2 {
             arrived = true
             return
         }

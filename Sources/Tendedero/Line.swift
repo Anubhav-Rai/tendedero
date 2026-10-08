@@ -11,6 +11,7 @@ struct Pegged: Identifiable, Equatable {
     var thumb: NSImage
     /// Every photo hangs a little crooked, like on a real line.
     let tilt = Double.random(in: -2.5...2.5)
+    let hungAt = Date()
     var falling = false
     /// Still flying in from where it was captured; the card waits hidden.
     var flying = false
@@ -30,7 +31,21 @@ final class Line: ObservableObject {
     @Published var draggingID: UUID?
     @Published var pressedID: UUID?
     /// The photo under the pointer.
-    @Published var hoveredID: UUID?
+    @Published var hoveredID: UUID? { didSet { if hoveredID != oldValue { loadSharp() } } }
+
+    /// Cards keep a small preview so a long line stays light. Only the
+    /// zoomed one loads a sharp version.
+    static let thumbPixels = 420
+    @Published private(set) var sharp: (id: UUID, image: NSImage)?
+
+    private func loadSharp() {
+        guard Line.zoomOnHover, let id = hoveredID, let item = items.first(where: { $0.id == id }) else {
+            sharp = nil
+            return
+        }
+        if sharp?.id == id { return }
+        sharp = makeThumbnail(item.url).map { (id, $0) }
+    }
 
     /// Photos grow in place while the pointer rests on them.
     nonisolated static var zoomOnHover: Bool {
@@ -60,7 +75,49 @@ final class Line: ObservableObject {
     /// uses them to only catch clicks over photos and let the rest through.
     var hitRects: [UUID: CGRect] = [:]
 
-    var maxItems = 8
+    /// How many items the line keeps before the oldest falls off.
+    var maxItems = Line.keepCount
+
+    static let keepChoices = Array(stride(from: 10, through: 500, by: 10))
+    static var keepCount: Int {
+        get { (UserDefaults.standard.object(forKey: "keepCount") as? Int) ?? 30 }
+        set { UserDefaults.standard.set(newValue, forKey: "keepCount") }
+    }
+
+    /// How many cards fit across the screen at once. With more than that,
+    /// the line shows the newest at the right and a sideways swipe scrolls
+    /// back through the older ones.
+    var visibleSlots = 8
+    /// How many places the line is scrolled back from the newest item.
+    @Published var offset: CGFloat = 0
+
+    var maxOffset: CGFloat { CGFloat(max(0, items.count - visibleSlots)) }
+
+    func rotate(by amount: CGFloat) {
+        offset = min(maxOffset, max(0, offset + amount))
+    }
+
+    /// Steps whole cards at a time, for the arrows and a mouse wheel.
+    func step(by cards: CGFloat) {
+        offset = min(maxOffset, max(0, offset.rounded() + cards))
+    }
+
+    /// Settles on a whole card after a swipe.
+    func settle() {
+        offset = min(maxOffset, max(0, offset.rounded()))
+    }
+
+    /// Where an item hangs across the line, and how far it sits outside the
+    /// visible stretch, in cards (0 when fully visible).
+    func place(of index: Int, width: CGFloat) -> (x: CGFloat, overflow: CGFloat) {
+        let count = items.count
+        guard count > visibleSlots else { return (Layout.x(index: index, count: count, width: width), 0) }
+        let slots = CGFloat(visibleSlots)
+        let rightX = width / 2 + (slots - 1) / 2 * Layout.spacing
+        let fromRight = CGFloat(count - 1 - index) - min(offset, maxOffset)
+        let overflow = max(0, fromRight - (slots - 1), -fromRight)
+        return (rightX - fromRight * Layout.spacing, overflow)
+    }
 
 
     var soundOn: Bool {
@@ -82,17 +139,23 @@ final class Line: ObservableObject {
     @discardableResult
     func hang(_ url: URL, quietly: Bool = false, flying: Bool = false) -> UUID? {
         guard !items.contains(where: { $0.url == url && !$0.falling }),
-              let thumb = makeThumbnail(url) else { return nil }
+              let thumb = makeThumbnail(url, maxPixels: Line.thumbPixels) else { return nil }
         var item = Pegged(url: url, thumb: thumb)
         item.flying = flying
         items.append(item)
-        // A full line lets the oldest photo fall off the far end.
-        while liveCount > maxItems, let oldest = items.first(where: { !$0.falling }) {
-            drop(oldest.id, quietly: true)
-        }
+        // Something new: the line goes back to showing the newest.
+        offset = 0
+        trim()
         save()
         if !quietly { play("Tink", volume: 0.35) }
         return item.id
+    }
+
+    /// A full line lets the oldest photo fall off the far end.
+    func trim() {
+        while liveCount > maxItems, let oldest = items.first(where: { !$0.falling }) {
+            drop(oldest.id, quietly: true)
+        }
     }
 
     /// The capture has reached the line: the real card takes over.
@@ -223,8 +286,9 @@ final class Line: ObservableObject {
     /// After editing, the photo on the line shows the new version.
     func reloadThumbnail(for url: URL) {
         guard let i = items.firstIndex(where: { $0.url == url && !$0.falling }),
-              let thumb = makeThumbnail(url) else { return }
+              let thumb = makeThumbnail(url, maxPixels: Line.thumbPixels) else { return }
         items[i].thumb = thumb
+        if sharp?.id == items[i].id { sharp = nil; loadSharp() }
     }
 
     func reveal(_ id: UUID) {
