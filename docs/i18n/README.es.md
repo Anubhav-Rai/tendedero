@@ -48,6 +48,8 @@ Lleva el puntero a la barra de menús y la cuerda baja. Apártalo y desaparece.
 | Arrastrar a una app | Envía una copia, y la captura sigue colgada. |
 | Arrastrar a una carpeta | Se queda ahí y sale de la cuerda. |
 | Arrastrar a la Papelera o hacer clic en la cruz | Te deshaces de ella. |
+| Dejar el puntero sobre una foto<sup>2</sup> | Se amplía en su sitio y las de al lado se apartan. |
+| Desplazar sobre una foto ampliada<sup>2</sup> | La amplía más o menos. |
 | Dejar el puntero en la barra de menús | Baja la cuerda en esa pantalla. |
 | Hacer clic en cualquier sitio de la barra de menús | Recoge la cuerda. |
 | <kbd>⌃</kbd>&thinsp;<kbd>⌥</kbd>&thinsp;<kbd>T</kbd> | Muestra u oculta la cuerda. |
@@ -146,6 +148,8 @@ Las traducciones están en `Sources/Tendedero/Resources`, con una carpeta
 
 <sub>
 1. La primera vez que lo abres, Tendedero te ofrece encargarse de tus capturas. Si aceptas, desactiva la miniatura flotante y guarda las capturas nuevas en su propia carpeta; son dos ajustes que también encontrarás en Opciones de Cmd+Mayús+5. Tus ajustes anteriores se guardan y vuelven a su sitio al cerrar Tendedero o al desactivar la opción desde la barra de menús. Mientras una app está a pantalla completa, Tendedero se oculta solo.
+<br>
+2. Con Ampliar al pasar el puntero activado desde la barra de menús. Viene desactivado.
 </sub>
 
 <br>

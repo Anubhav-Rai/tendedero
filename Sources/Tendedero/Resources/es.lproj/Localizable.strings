@@ -16,6 +16,8 @@
 "Quit Tendedero" = "Salir de Tendedero";
 "Could not change the login setting" = "No se pudo cambiar el inicio de sesión";
 "Move Tendedero to the Applications folder and try again." = "Mueve Tendedero a la carpeta Aplicaciones y vuelve a intentarlo.";
+"Zoom on hover" = "Ampliar al pasar el puntero";
+"Rest the pointer on a photo to see it larger" = "Deja el puntero sobre una foto para verla en grande";
 
 /* GrabArea */
 "Copy" = "Copiar";

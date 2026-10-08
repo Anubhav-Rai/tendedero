@@ -46,6 +46,8 @@ Rest the pointer in the menu bar and it glides down. Move away and it's gone.
 | Drag into an app | Send a copy. It stays on the line. |
 | Drag into a folder | Keep it there. It leaves the line. |
 | Drag to the Trash, or click the cross | Let it go. |
+| Rest the pointer on a photo<sup>2</sup> | Zoom it in place. Its neighbours step aside. |
+| Scroll over a zoomed photo<sup>2</sup> | Zoom further in or back out. |
 | Rest the pointer in the menu bar | Bring the line down on that screen. |
 | Click anything in the menu bar | Put it away. |
 | <kbd>⌃</kbd>&thinsp;<kbd>⌥</kbd>&thinsp;<kbd>T</kbd> | Show or hide the line. |
@@ -141,6 +143,8 @@ language. `swift scripts/check-strings.swift` checks that none is missing.
 
 <sub>
 1. On first launch, Tendedero offers to handle your screenshots. If you accept, it turns off the floating thumbnail and saves new screenshots to its own folder, two settings also found under Options in Cmd+Shift+5. Your previous settings are saved and restored when Tendedero quits or the option is turned off from the menu bar. Tendedero hides automatically while an app is in full screen.
+<br>
+2. With Zoom on hover turned on from the menu bar. It is off by default.
 </sub>
 
 <br>

@@ -18,6 +18,8 @@
 "Quit Tendedero" = "Quit Tendedero";
 "Could not change the login setting" = "Could not change the login setting";
 "Move Tendedero to the Applications folder and try again." = "Move Tendedero to the Applications folder and try again.";
+"Zoom on hover" = "Zoom on hover";
+"Rest the pointer on a photo to see it larger" = "Rest the pointer on a photo to see it larger";
 
 /* GrabArea */
 "Copy" = "Copy";

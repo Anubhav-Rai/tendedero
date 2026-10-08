@@ -1,7 +1,14 @@
 import SwiftUI
 
 enum Layout {
-    static let panelHeight: CGFloat = 210
+    static let baseHeight: CGFloat = 210
+    /// How much a photo grows while the pointer rests on it, and how far
+    /// scrolling over it can take it.
+    static let zoom: CGFloat = 2
+    static let maxZoom: CGFloat = 3.5
+    /// Zooming needs room below the cards. The extra strip is see through
+    /// and lets clicks through, like the rest of the panel.
+    static var panelHeight: CGFloat { Line.zoomOnHover ? 470 : baseHeight }
     static let ropeTop: CGFloat = 10
     static let spacing: CGFloat = 174
     static let cardWidth: CGFloat = 150
@@ -16,6 +23,12 @@ enum Layout {
         return ropeTop + 4 * sag(width: width) * f * (1 - f)
     }
 
+    /// How far the neighbours of a zoomed photo step aside to make room.
+    static func push(for imageSize: CGSize, zoom: CGFloat) -> CGFloat {
+        let zoomed = PeggedView.cardSize(for: imageSize, zoom: zoom).width
+        return max(0, zoomed / 2 + cardWidth / 2 + 14 - spacing)
+    }
+
     static func x(index: Int, count: Int, width: CGFloat) -> CGFloat {
         let total = CGFloat(max(count - 1, 0)) * spacing
         return width / 2 - total / 2 + CGFloat(index) * spacing
@@ -28,6 +41,8 @@ struct LineView: View {
     var body: some View {
         GeometryReader { geo in
             let width = geo.size.width
+            let zoomIndex = line.zoomedID.flatMap { id in line.items.firstIndex { $0.id == id } }
+            let push = zoomIndex.map { Layout.push(for: line.items[$0].thumb.size, zoom: line.zoomLevel) } ?? 0
             ZStack(alignment: .topLeading) {
                 Rope(width: width)
 
@@ -38,14 +53,18 @@ struct LineView: View {
                 }
 
                 ForEach(Array(line.items.enumerated()), id: \.element.id) { index, item in
-                    let x = Layout.x(index: index, count: line.items.count, width: width)
+                    let shift = zoomIndex.map { index < $0 ? -push : (index > $0 ? push : 0) } ?? 0
+                    let x = Layout.x(index: index, count: line.items.count, width: width) + shift
                     let ropeY = Layout.ropeY(x: x, width: width)
                     PeggedView(item: item, line: line)
                         .frame(width: Layout.cardWidth, height: Layout.panelHeight - ropeY, alignment: .top)
                         .position(x: x, y: ropeY - Layout.pinAbove + (Layout.panelHeight - ropeY) / 2)
+                        .zIndex(line.zoomedID == item.id ? 1 : 0)
                 }
             }
             .animation(.spring(response: 0.55, dampingFraction: 0.78), value: line.items.map(\.id))
+            // The neighbours of a zoomed photo slide aside, like the Dock.
+            .animation(.spring(response: 0.34, dampingFraction: 0.78), value: line.zoomedID)
             .animation(.easeInOut(duration: 0.3), value: line.items.isEmpty)
             // Tucked away, the whole line waits above the top edge and slides
             // out from under the menu bar, the way an auto-hiding Dock does.

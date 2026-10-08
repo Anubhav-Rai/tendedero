@@ -29,6 +29,30 @@ final class Line: ObservableObject {
     @Published var copiedID: UUID?
     @Published var draggingID: UUID?
     @Published var pressedID: UUID?
+    /// The photo under the pointer.
+    @Published var hoveredID: UUID?
+
+    /// Photos grow in place while the pointer rests on them.
+    nonisolated static var zoomOnHover: Bool {
+        get { UserDefaults.standard.bool(forKey: "zoomOnHover") }
+        set { UserDefaults.standard.set(newValue, forKey: "zoomOnHover") }
+    }
+
+    /// How large the zoomed photo is. Starts at the hover zoom, follows a
+    /// scroll over the photo, and goes back when the pointer leaves.
+    @Published var zoomLevel: CGFloat = Layout.zoom
+
+    func zoom(_ id: UUID, by amount: CGFloat) {
+        guard Line.zoomOnHover else { return }
+        hoveredID = id
+        zoomLevel = min(Layout.maxZoom, max(1, zoomLevel * (1 + amount)))
+    }
+
+    /// The photo shown zoomed: the hovered one, unless it is being dragged or held.
+    var zoomedID: UUID? {
+        guard Line.zoomOnHover, draggingID == nil, pressedID == nil else { return nil }
+        return hoveredID
+    }
     /// Whether the line has slid down into view.
     @Published var revealed = false
 
@@ -250,7 +274,8 @@ final class Line: ObservableObject {
     }
 }
 
-func makeThumbnail(_ url: URL, maxPixels: Int = 480) -> NSImage? {
+// Sharp enough for a zoomed photo on a Retina display.
+func makeThumbnail(_ url: URL, maxPixels: Int = 1400) -> NSImage? {
     guard let source = CGImageSourceCreateWithURL(url as CFURL, nil) else { return nil }
     let options: [CFString: Any] = [
         kCGImageSourceCreateThumbnailFromImageAlways: true,

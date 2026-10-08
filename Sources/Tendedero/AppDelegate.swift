@@ -61,6 +61,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
         setUpStatusItem()
         watchMenuBarClicks()
+        watchScrollZoom()
 
         Markup.shared.onSaved = { [weak self] url in self?.line.reloadThumbnail(for: url) }
         line.onFall = { [weak self] item in self?.fall(item) }
@@ -369,6 +370,31 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             clickMonitors.append(local)
         }
     }
+    /// A two finger scroll over a photo zooms it in and out. Pinches only
+    /// reach the active app and the line never activates, but scrolling
+    /// reaches the window under the pointer.
+    private func watchScrollZoom() {
+        let monitor = NSEvent.addLocalMonitorForEvents(matching: .scrollWheel) { [weak self] event in
+            var amount = event.hasPreciseScrollingDeltas ? event.scrollingDeltaY * 0.01 : event.scrollingDeltaY * 0.1
+            // Fingers up zooms in, whichever way scrolling is set.
+            if event.isDirectionInvertedFromDevice { amount = -amount }
+            let used = MainActor.assumeIsolated { self?.zoomPhotoUnderPointer(by: amount) ?? false }
+            return used ? nil : event
+        }
+        if let monitor { clickMonitors.append(monitor) }
+    }
+
+    /// Returns true when there was a photo under the pointer to zoom.
+    private func zoomPhotoUnderPointer(by amount: CGFloat) -> Bool {
+        guard Line.zoomOnHover, isRevealed else { return false }
+        let local = panel.convertPoint(fromScreen: NSEvent.mouseLocation)
+        let flipped = CGPoint(x: local.x, y: panel.frame.height - local.y)
+        guard let id = line.hitRects.first(where: { $0.value.insetBy(dx: -4, dy: -4).contains(flipped) })?.key
+                ?? line.hoveredID else { return false }
+        line.zoom(id, by: amount)
+        return true
+    }
+
     /// How long the cursor is away before the line tucks back up.
     private static let retractDelay: TimeInterval = 0.5
 
@@ -408,6 +434,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         // The line's zone runs from its lowest point up to the top of the
         // screen, menu bar included, so moving up never hides it.
         var zone = panel.frame
+        // The room kept for zooming only counts while a photo is zoomed.
+        if line.zoomedID == nil {
+            zone.origin.y = zone.maxY - Layout.baseHeight
+            zone.size.height = Layout.baseHeight
+        }
         if let screen = panel.screen { zone.size.height = screen.frame.maxY - zone.minY }
         let inside = NSMouseInRect(mouse, zone, false)
         if inside && pinned { pinned = false }
@@ -484,6 +515,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         })
 
         menu.addItem(.separator())
+
+        let zoom = ClosureMenuItem(L("Zoom on hover")) { [weak self] in
+            guard let self else { return }
+            Line.zoomOnHover.toggle()
+            self.line.hoveredID = nil
+            self.panel.placeOnScreen(self.panel.screen)
+        }
+        zoom.state = Line.zoomOnHover ? .on : .off
+        zoom.toolTip = L("Rest the pointer on a photo to see it larger")
+        menu.addItem(zoom)
 
         let sound = ClosureMenuItem(L("Sounds")) { [weak self] in
             guard let self else { return }
