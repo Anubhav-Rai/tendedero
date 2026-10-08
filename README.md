@@ -128,6 +128,9 @@ Every image here, the icon included, is drawn in code by
 `scripts/make-icon.swift` and `scripts/make-readme-art.swift`.
 `scripts/make-dmg.sh` builds the disk image for releases.
 
+Translations live in `Sources/Tendedero/Resources`, one `.lproj` folder per
+language. `swift scripts/check-strings.swift` checks that none is missing.
+
 </details>
 
 <br>
