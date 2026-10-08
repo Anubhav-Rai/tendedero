@@ -182,7 +182,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             updateCapacity()
             wanted = true
             refresh()
-            reveal(peekFor: 2.5)
+            // Unless turned off, the line comes down for a moment to show
+            // what just hung; otherwise it waits for the top edge.
+            if Self.peeksAtNew { reveal(peekFor: 2.5) }
         } else if live == 0 && !keepOpen {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.7) { [weak self] in
                 guard let self, self.line.liveCount == 0, !self.keepOpen else { return }
@@ -443,6 +445,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         line.maxItems = max(3, min(12, Int(usable / Layout.spacing)))
     }
 
+    /// Whether a new item brings the line down for a moment.
+    static var peeksAtNew: Bool {
+        get { !UserDefaults.standard.bool(forKey: "quietHang") }
+        set { UserDefaults.standard.set(!newValue, forKey: "quietHang") }
+    }
+
     // MARK: Menu bar
 
     private func setUpStatusItem() {
@@ -484,6 +492,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         })
 
         menu.addItem(.separator())
+
+        let peek = ClosureMenuItem(L("Show new items")) {
+            Self.peeksAtNew.toggle()
+        }
+        peek.state = Self.peeksAtNew ? .on : .off
+        peek.toolTip = L("The line comes down for a moment when something new hangs")
+        menu.addItem(peek)
 
         let sound = ClosureMenuItem(L("Sounds")) { [weak self] in
             guard let self else { return }

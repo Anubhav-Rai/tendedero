@@ -18,6 +18,8 @@
 "Quit Tendedero" = "Quit Tendedero";
 "Could not change the login setting" = "Could not change the login setting";
 "Move Tendedero to the Applications folder and try again." = "Move Tendedero to the Applications folder and try again.";
+"Show new items" = "Show new items";
+"The line comes down for a moment when something new hangs" = "The line comes down for a moment when something new hangs";
 
 /* GrabArea */
 "Copy" = "Copy";
