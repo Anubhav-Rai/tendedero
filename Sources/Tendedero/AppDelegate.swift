@@ -14,9 +14,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     /// ignores the screenshot settings (macOS 27 renamed one), captures keep
     /// landing on the Desktop, and they still hang on the line.
     private var safetyWatcher: ScreenshotWatcher?
-    /// A folder chosen in "Also watch a folder", like the one another
+    /// Folders chosen in "Also watch folders", like the one another
     /// screenshot app saves to.
-    private var folderWatcher: ScreenshotWatcher?
+    private var folderWatchers: [ScreenshotWatcher] = []
     private var clipboardWatcher: ClipboardWatcher!
     private var signalSources: [DispatchSourceSignal] = []
     private var hotKey: HotKey?
@@ -156,29 +156,36 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             safety.start()
             safetyWatcher = safety
         }
-        folderWatcher?.stop()
-        folderWatcher = nil
-        if let folder = Self.extraFolder,
-           ![watcher.folder, safetyWatcher?.folder].contains(where: { $0?.standardizedFileURL == folder.standardizedFileURL }) {
+        folderWatchers.forEach { $0.stop() }
+        folderWatchers = []
+        // A folder may also be watched for screenshots, like the Desktop; an
+        // image both report hangs once.
+        for folder in Self.extraFolders {
             let extra = ScreenshotWatcher(
-                folder: folder,
+                folder: folder, anyImage: true,
                 onNew: { [weak self] url in self?.hangCapture(url) },
                 onChange: { [weak self] in self?.line.prune() })
             extra.start()
-            folderWatcher = extra
+            folderWatchers.append(extra)
         }
     }
 
-    /// The folder from "Also watch a folder", if it still exists. New images
-    /// in it hang like screenshots; taking one down leaves the file there.
-    static var extraFolder: URL? {
+    /// Up to three folders: enough for another screenshot app or an export
+    /// folder, few enough that screenshots still have room on the line.
+    static let maxExtraFolders = 3
+
+    /// The folders from "Also watch folders" that still exist. New images in
+    /// them hang like screenshots; taking one down leaves the file there.
+    static var extraFolders: [URL] {
         get {
-            guard let path = UserDefaults.standard.string(forKey: "extraFolder") else { return nil }
-            var isDir: ObjCBool = false
-            guard FileManager.default.fileExists(atPath: path, isDirectory: &isDir), isDir.boolValue else { return nil }
-            return URL(fileURLWithPath: path, isDirectory: true)
+            let paths = UserDefaults.standard.stringArray(forKey: "extraFolders") ?? []
+            return paths.compactMap { path in
+                var isDir: ObjCBool = false
+                guard FileManager.default.fileExists(atPath: path, isDirectory: &isDir), isDir.boolValue else { return nil }
+                return URL(fileURLWithPath: path, isDirectory: true)
+            }
         }
-        set { UserDefaults.standard.set(newValue?.path, forKey: "extraFolder") }
+        set { UserDefaults.standard.set(newValue.map(\.path), forKey: "extraFolders") }
     }
 
     private func chooseExtraFolder() {
@@ -189,8 +196,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         panel.prompt = L("Watch")
         panel.message = L("New images saved to this folder will hang on the line.")
         NSApp.activate(ignoringOtherApps: true)
-        guard panel.runModal() == .OK, let url = panel.url else { return }
-        Self.extraFolder = url
+        guard panel.runModal() == .OK, let url = panel.url, Self.extraFolders.count < Self.maxExtraFolders,
+              !Self.extraFolders.contains(where: { $0.standardizedFileURL == url.standardizedFileURL }) else { return }
+        Self.extraFolders.append(url)
         startWatcher()
     }
 
@@ -572,6 +580,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
         updateStatusIcon()
         let menu = NSMenu()
+        // Items say themselves whether they can be used, like Take everything
+        // down on an empty line.
+        menu.autoenablesItems = false
         menu.delegate = self
         statusItem.menu = menu
     }
@@ -640,22 +651,32 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         bringDown.submenu = options
         menu.addItem(bringDown)
 
-        let folderItem = NSMenuItem(title: L("Also watch a folder"), action: nil, keyEquivalent: "")
+        let folderItem = NSMenuItem(title: L("Also watch folders"), action: nil, keyEquivalent: "")
         let folderMenu = NSMenu()
-        if let folder = Self.extraFolder {
-            let current = ClosureMenuItem(FileManager.default.displayName(atPath: folder.path)) {
+        folderMenu.autoenablesItems = false
+        let folders = Self.extraFolders
+        for folder in folders {
+            let item = ClosureMenuItem(FileManager.default.displayName(atPath: folder.path)) {
                 NSWorkspace.shared.open(folder)
             }
-            current.state = .on
-            folderMenu.addItem(current)
-            folderMenu.addItem(.separator())
+            item.state = .on
+            folderMenu.addItem(item)
         }
-        folderMenu.addItem(ClosureMenuItem(L("Choose Folder…")) { [weak self] in self?.chooseExtraFolder() })
-        if Self.extraFolder != nil {
-            folderMenu.addItem(ClosureMenuItem(L("Stop Watching")) { [weak self] in
-                AppDelegate.extraFolder = nil
-                self?.startWatcher()
-            })
+        if !folders.isEmpty { folderMenu.addItem(.separator()) }
+        let add = ClosureMenuItem(L("Add Folder…")) { [weak self] in self?.chooseExtraFolder() }
+        add.isEnabled = folders.count < Self.maxExtraFolders
+        folderMenu.addItem(add)
+        if !folders.isEmpty {
+            let stop = NSMenuItem(title: L("Stop Watching"), action: nil, keyEquivalent: "")
+            let stopMenu = NSMenu()
+            for folder in folders {
+                stopMenu.addItem(ClosureMenuItem(FileManager.default.displayName(atPath: folder.path)) { [weak self] in
+                    AppDelegate.extraFolders.removeAll { $0.standardizedFileURL == folder.standardizedFileURL }
+                    self?.startWatcher()
+                })
+            }
+            stop.submenu = stopMenu
+            folderMenu.addItem(stop)
         }
         folderItem.submenu = folderMenu
         menu.addItem(folderItem)

@@ -30,11 +30,14 @@ final class ScreenshotWatcher {
     static let desktop = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Desktop")
 
     /// Watches the folder macOS saves screenshots to, or a given folder.
-    init(folder: URL? = nil, onNew: @escaping (URL) -> Void, onChange: @escaping () -> Void) {
+    /// `anyImage` takes every new image even on the Desktop, for a folder
+    /// the user chose to watch.
+    init(folder: URL? = nil, anyImage: Bool = false, onNew: @escaping (URL) -> Void, onChange: @escaping () -> Void) {
         self.onNew = onNew
         self.onChange = onChange
         self.folder = folder ?? Self.screenshotFolder()
-        onlyTaggedScreenshots = self.folder.standardizedFileURL.path == Self.desktop.standardizedFileURL.path
+        onlyTaggedScreenshots = !anyImage
+            && self.folder.standardizedFileURL.path == Self.desktop.standardizedFileURL.path
         acceptsRecordings = self.folder.standardizedFileURL.path == Inbox.folder.standardizedFileURL.path
     }
 
