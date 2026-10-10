@@ -721,6 +721,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         login.state = SMAppService.mainApp.status == .enabled ? .on : .off
         menu.addItem(login)
 
+        // The app never connects to anything, so it cannot tell when a new
+        // version is out; this opens the releases page instead.
+        menu.addItem(ClosureMenuItem(L("Check for Updates…")) {
+            NSWorkspace.shared.open(URL(string: "https://github.com/alejandrobujan/tendedero/releases/latest")!)
+        })
+
         menu.addItem(.separator())
         menu.addItem(ClosureMenuItem(L("Quit Tendedero"), key: "q") {
             NSApp.terminate(nil)
