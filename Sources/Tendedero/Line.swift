@@ -1,4 +1,5 @@
 import AppKit
+import AVFoundation
 import Combine
 import os
 
@@ -14,6 +15,8 @@ struct Pegged: Identifiable, Equatable {
     var falling = false
     /// Still flying in from where it was captured; the card waits hidden.
     var flying = false
+    /// A screen recording rather than a screenshot.
+    var isRecording: Bool { Tendedero.isRecording(url) }
 
     static func == (a: Pegged, b: Pegged) -> Bool {
         a.id == b.id && a.falling == b.falling && a.flying == b.flying && a.thumb === b.thumb
@@ -117,7 +120,8 @@ final class Line: ObservableObject {
     func copy(_ id: UUID) {
         guard let item = items.first(where: { $0.id == id }) else { return }
         let entry = NSPasteboardItem()
-        if let png = pngData(item.url) { entry.setData(png, forType: .png) }
+        // A recording is copied as the file, which apps paste as the video.
+        if !item.isRecording, let png = pngData(item.url) { entry.setData(png, forType: .png) }
         entry.setString(item.url.absoluteString, forType: .fileURL)
         let pb = NSPasteboard.general
         pb.clearContents()
@@ -204,10 +208,15 @@ final class Line: ObservableObject {
         return candidate
     }
 
-    /// Long press: open the photo in the system Markup editor.
+    /// Long press: open the photo in the system Markup editor. Markup does
+    /// not edit video, so a recording opens in the trimming editor instead.
     func markup(_ id: UUID) {
         guard let item = items.first(where: { $0.id == id }) else { return }
-        Markup.shared.edit(item.url)
+        if item.isRecording {
+            Trim.shared.edit(item.url, size: item.thumb.size)
+        } else {
+            Markup.shared.edit(item.url)
+        }
     }
 
     /// After editing, the photo on the line shows the new version.
@@ -269,7 +278,13 @@ final class Line: ObservableObject {
     }
 }
 
+/// Screen recordings, as macOS saves them.
+func isRecording(_ url: URL) -> Bool {
+    ["mov", "mp4"].contains(url.pathExtension.lowercased())
+}
+
 func makeThumbnail(_ url: URL, maxPixels: Int = 480) -> NSImage? {
+    if isRecording(url) { return firstFrame(url, maxPixels: maxPixels) }
     guard let source = CGImageSourceCreateWithURL(url as CFURL, nil) else { return nil }
     let options: [CFString: Any] = [
         kCGImageSourceCreateThumbnailFromImageAlways: true,
@@ -277,5 +292,14 @@ func makeThumbnail(_ url: URL, maxPixels: Int = 480) -> NSImage? {
         kCGImageSourceThumbnailMaxPixelSize: maxPixels,
     ]
     guard let cg = CGImageSourceCreateThumbnailAtIndex(source, 0, options as CFDictionary) else { return nil }
+    return NSImage(cgImage: cg, size: NSSize(width: cg.width, height: cg.height))
+}
+
+/// A recording shows its first frame.
+private func firstFrame(_ url: URL, maxPixels: Int) -> NSImage? {
+    let generator = AVAssetImageGenerator(asset: AVURLAsset(url: url))
+    generator.appliesPreferredTrackTransform = true
+    generator.maximumSize = CGSize(width: maxPixels, height: maxPixels)
+    guard let cg = try? generator.copyCGImage(at: .zero, actualTime: nil) else { return nil }
     return NSImage(cgImage: cg, size: NSSize(width: cg.width, height: cg.height))
 }

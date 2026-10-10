@@ -59,6 +59,8 @@
 把截图交给 Tendedero<sup>1</sup>，它们就完全跳过桌面。
 没有浮动缩略图。不用等五秒。拍下的瞬间即挂上绳，只有你拖出去的才会留下。
 
+屏幕录制也会挂上绳，上面带一个播放按钮。按住即可剪辑。
+
 同样的快捷键。同样的肌肉记忆。只是少了乱。
 
 <br>
@@ -121,6 +123,7 @@ open build/Tendedero.app
 | `ScreenshotWatcher.swift` | 发现新的截图 |
 | `Inbox.swift` | 接管截图设置，之后再把它们放回去 |
 | `Markup.swift` | 打开系统「标记」编辑器并保存结果 |
+| `Trim.swift` | 剪辑屏幕录制并保存结果 |
 | `FullScreen.swift` | 判断何时该保持隐藏 |
 | `Line.swift` | 绳上挂着什么，以及你能对它做什么 |
 

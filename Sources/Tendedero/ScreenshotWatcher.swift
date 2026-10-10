@@ -8,6 +8,9 @@ final class ScreenshotWatcher {
     /// On the Desktop we only accept real screenshots, tagged by macOS with an
     /// extended attribute. In a dedicated folder, any image counts.
     private let onlyTaggedScreenshots: Bool
+    /// Screen recordings carry no tag, so they are only picked up in
+    /// Tendedero's own folder, where nothing else is saved.
+    private let acceptsRecordings: Bool
     private var known: Set<String>?
     private var source: DispatchSourceFileSystemObject?
     private var pending: DispatchWorkItem?
@@ -32,6 +35,7 @@ final class ScreenshotWatcher {
         self.onChange = onChange
         self.folder = folder ?? Self.screenshotFolder()
         onlyTaggedScreenshots = self.folder.standardizedFileURL.path == Self.desktop.standardizedFileURL.path
+        acceptsRecordings = self.folder.standardizedFileURL.path == Inbox.folder.standardizedFileURL.path
     }
 
     static func screenshotFolder() -> URL {
@@ -162,6 +166,7 @@ final class ScreenshotWatcher {
     }
 
     private func isCandidate(_ url: URL) -> Bool {
+        if isRecording(url) { return acceptsRecordings }
         guard Self.imageExtensions.contains(url.pathExtension.lowercased()) else { return false }
         return onlyTaggedScreenshots ? isScreenCapture(url) : true
     }

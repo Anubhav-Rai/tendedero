@@ -58,6 +58,9 @@ Hand Tendedero your screenshots<sup>1</sup> and they skip the Desktop
 entirely. No floating thumbnail. No five-second wait. Each capture hangs
 the instant you take it, and only what you drag out is kept.
 
+Screen recordings hang there too, with a play button over them.
+Press and hold one to trim it.
+
 Same shortcuts. Same muscle memory. Just less mess.
 
 <br>
@@ -123,6 +126,7 @@ so macOS asks again for access to the Desktop after each rebuild.
 | `ScreenshotWatcher.swift` | Notices new screenshots |
 | `Inbox.swift` | Takes over screenshot settings and puts them back |
 | `Markup.swift` | Opens the system Markup editor and saves the result |
+| `Trim.swift` | Trims a screen recording and saves the result |
 | `FullScreen.swift` | Knows when to stay hidden |
 | `Line.swift` | What is hanging, and what you can do with it |
 
