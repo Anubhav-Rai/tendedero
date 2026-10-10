@@ -269,7 +269,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         guard !isPresent else { return }
         isPresent = true
         panel.alphaValue = 1
-        panel.orderFrontRegardless()
+        // The window itself only comes in while the line is down; see setRevealed.
+        if isRevealed { panel.orderFrontRegardless() }
     }
 
     private func dismiss() {
@@ -294,6 +295,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         guard on != isRevealed else { return }
         isRevealed = on
         line.revealed = on
+        // Tucked away, the line leaves no window behind: an invisible strip
+        // over the top of the screen would still sit above other apps for
+        // anything that checks what is on top, like screen automation.
+        if on {
+            if isPresent { panel.orderFrontRegardless() }
+        } else {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { [weak self] in
+                guard let self, !self.isRevealed else { return }
+                self.panel.orderOut(nil)
+            }
+        }
         if !on {
             pinned = false
             peekUntil = .distantPast
