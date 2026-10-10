@@ -51,6 +51,10 @@ final class CaptureFlight {
 
     private static var current: [CaptureFlight] = []
 
+    /// Captures flying to the line right now. Each one holds a large image,
+    /// so in a burst of captures only a couple fly and the rest drop in.
+    static var flightsInProgress: Int { current.filter { !$0.falling }.count }
+
     /// - Parameters:
     ///   - from: the captured area, in screen coordinates.
     ///   - to: the card's frame on the line, in screen coordinates, unrotated.

@@ -283,7 +283,9 @@ func isRecording(_ url: URL) -> Bool {
     ["mov", "mp4"].contains(url.pathExtension.lowercased())
 }
 
-func makeThumbnail(_ url: URL, maxPixels: Int = 480) -> NSImage? {
+/// The default size covers a card at twice its size in points, as on a
+/// Retina screen, and no more: every photo on the line keeps one in memory.
+func makeThumbnail(_ url: URL, maxPixels: Int = 320) -> NSImage? {
     if isRecording(url) { return firstFrame(url, maxPixels: maxPixels) }
     guard let source = CGImageSourceCreateWithURL(url as CFURL, nil) else { return nil }
     let options: [CFString: Any] = [
