@@ -42,6 +42,23 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     /// Set when you open the line on purpose, so it stays up while empty.
     private var keepOpen = false
 
+    // What brings the line down, from the menu bar's "Bring the line down".
+    // Out of the box, the first two are on and the third off.
+
+    /// Resting the pointer in the menu bar. Off, only the shortcut and the
+    /// menu open it.
+    static var opensFromMenuBar: Bool {
+        get { !UserDefaults.standard.bool(forKey: "menuBarRevealOff") }
+        set { UserDefaults.standard.set(!newValue, forKey: "menuBarRevealOff") }
+    }
+
+    /// Something new hanging shows itself for a moment. Off, it hangs
+    /// quietly and waits for you to bring the line down.
+    static var peeksAtNew: Bool {
+        get { !UserDefaults.standard.bool(forKey: "quietHang") }
+        set { UserDefaults.standard.set(!newValue, forKey: "quietHang") }
+    }
+
     func applicationDidFinishLaunching(_ notification: Notification) {
         let host = NSHostingView(rootView: LineView(line: line))
         host.sizingOptions = []
@@ -201,7 +218,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         updateCapacity()
         wanted = true
         refresh()
-        reveal(peekFor: 2.5)
+        if Self.peeksAtNew { reveal(peekFor: 2.5) }
     }
 
     // MARK: The capture flying to the line
@@ -274,8 +291,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     /// Decides whether the panel is ordered in at all: something to show,
     /// and no full screen app on that screen.
     private func refresh() {
-        let blocked = panel.screen.map(FullScreen.isActive(on:))
-            ?? LinePanel.screenUnderPointer().map(FullScreen.isActive(on:)) ?? false
+        let blocked = panel.screen.map(FullScreen.blocksLine(on:))
+            ?? LinePanel.screenUnderPointer().map(FullScreen.blocksLine(on:)) ?? false
         if wanted && !blocked {
             present()
         } else {
@@ -417,8 +434,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             // Resting in the menu bar brings the line down on that screen.
             // Pushing against the top edge is part of it, and it also works
             // when another display sits above and the pointer never stops.
-            if let screen = screenUnderPointer, inMenuBar, !menuBarSuppressed,
-               !FullScreen.isActive(on: screen) {
+            if Self.opensFromMenuBar, let screen = screenUnderPointer, inMenuBar, !menuBarSuppressed,
+               !FullScreen.blocksLine(on: screen) {
                 let since = hotZoneSince ?? now
                 hotZoneSince = since
                 if now.timeIntervalSince(since) >= Self.revealDelay {
@@ -526,6 +543,27 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         clipboard.state = ClipboardWatcher.isEnabled ? .on : .off
         clipboard.toolTip = L("Images you copy hang on the line too")
         menu.addItem(clipboard)
+
+        let bringDown = NSMenuItem(title: L("Bring the line down"), action: nil, keyEquivalent: "")
+        let options = NSMenu()
+        let hover = ClosureMenuItem(L("When the pointer rests in the menu bar")) {
+            AppDelegate.opensFromMenuBar.toggle()
+        }
+        hover.state = Self.opensFromMenuBar ? .on : .off
+        options.addItem(hover)
+        let peek = ClosureMenuItem(L("When something new hangs")) {
+            AppDelegate.peeksAtNew.toggle()
+        }
+        peek.state = Self.peeksAtNew ? .on : .off
+        options.addItem(peek)
+        let fullScreen = ClosureMenuItem(L("Over full screen apps")) { [weak self] in
+            FullScreen.showLineOver.toggle()
+            self?.refresh()
+        }
+        fullScreen.state = FullScreen.showLineOver ? .on : .off
+        options.addItem(fullScreen)
+        bringDown.submenu = options
+        menu.addItem(bringDown)
 
         menu.addItem(ClosureMenuItem(L("Open screenshots folder")) { [weak self] in
             guard let self else { return }
