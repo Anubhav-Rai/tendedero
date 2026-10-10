@@ -16,6 +16,13 @@
 "Quit Tendedero" = "退出 Tendedero";
 "Could not change the login setting" = "无法更改登录项设置";
 "Move Tendedero to the Applications folder and try again." = "请先把 Tendedero 移到「应用程序」文件夹，再试一次。";
+"Shortcut" = "快捷键";
+"Change Shortcut…" = "更改快捷键…";
+"Change Shortcut" = "更改快捷键";
+"None" = "无";
+"Space" = "空格";
+"Press the new shortcut" = "请按下新的快捷键";
+"Escape cancels. Delete removes the shortcut." = "按 Esc 取消，按删除键移除快捷键。";
 "Size" = "大小";
 "Small" = "小";
 "Medium" = "中";

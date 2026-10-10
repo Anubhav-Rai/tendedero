@@ -72,9 +72,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         clipboardWatcher = ClipboardWatcher { [weak self] url in self?.hangCapture(url) }
         if ClipboardWatcher.isEnabled { clipboardWatcher.start() }
 
-        hotKey = HotKey(keyCode: kVK_ANSI_T, modifiers: controlKey | optionKey) { [weak self] in
-            self?.toggle()
-        }
+        registerShortcut()
 
         setUpStatusItem()
         watchMenuBarClicks()
@@ -488,6 +486,34 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
     }
 
+    // MARK: Shortcut
+
+    private func registerShortcut() {
+        hotKey = nil
+        guard let shortcut = Shortcut.current else { return }
+        hotKey = HotKey(shortcut) { [weak self] in self?.toggle() }
+    }
+
+    private func changeShortcut() {
+        // Off while recording, so pressing the current one records it
+        // instead of showing the line.
+        hotKey = nil
+        ShortcutRecorder.shared.record { [weak self] result in
+            guard let self else { return }
+            if let result {
+                let previous = Shortcut.current
+                Shortcut.current = result
+                self.registerShortcut()
+                // Taken by another app: keep the one that worked.
+                if result != nil && self.hotKey == nil {
+                    NSSound.beep()
+                    Shortcut.current = previous
+                }
+            }
+            self.registerShortcut()
+        }
+    }
+
     private func setSize(_ size: Layout.Size) {
         guard size != Layout.size else { return }
         Layout.size = size
@@ -528,8 +554,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let toggleItem = ClosureMenuItem(isRevealed ? L("Hide line") : L("Show line")) { [weak self] in
             self?.toggle()
         }
-        toggleItem.keyEquivalent = "t"
-        toggleItem.keyEquivalentModifierMask = [.control, .option]
+        if let shortcut = Shortcut.current, shortcut.key.count == 1 {
+            toggleItem.keyEquivalent = shortcut.key
+            toggleItem.keyEquivalentModifierMask = shortcut.modifiers
+        }
         menu.addItem(toggleItem)
 
         let clearItem = ClosureMenuItem(L("Take everything down")) { [weak self] in
@@ -582,6 +610,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
         sizeItem.submenu = sizes
         menu.addItem(sizeItem)
+
+        let shortcutItem = NSMenuItem(title: L("Shortcut"), action: nil, keyEquivalent: "")
+        let shortcuts = NSMenu()
+        let current = NSMenuItem(title: Shortcut.current?.display ?? L("None"), action: nil, keyEquivalent: "")
+        current.isEnabled = false
+        shortcuts.addItem(current)
+        shortcuts.addItem(ClosureMenuItem(L("Change Shortcut…")) { [weak self] in self?.changeShortcut() })
+        shortcutItem.submenu = shortcuts
+        menu.addItem(shortcutItem)
 
         menu.addItem(ClosureMenuItem(L("Open screenshots folder")) { [weak self] in
             guard let self else { return }

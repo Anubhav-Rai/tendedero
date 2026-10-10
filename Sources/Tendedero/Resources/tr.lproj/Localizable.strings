@@ -16,6 +16,13 @@
 "Quit Tendedero" = "Tendedero'yu kapat";
 "Could not change the login setting" = "Giriş ayarı değiştirilemedi";
 "Move Tendedero to the Applications folder and try again." = "Tendedero'yu Uygulamalar klasörüne taşıyın ve tekrar deneyin.";
+"Shortcut" = "Kısayol";
+"Change Shortcut…" = "Kısayolu değiştir…";
+"Change Shortcut" = "Kısayolu değiştir";
+"None" = "Yok";
+"Space" = "Boşluk";
+"Press the new shortcut" = "Yeni kısayolu basın";
+"Escape cancels. Delete removes the shortcut." = "Escape iptal eder. Sil kısayolu kaldırır.";
 "Size" = "Boyut";
 "Small" = "Küçük";
 "Medium" = "Orta";

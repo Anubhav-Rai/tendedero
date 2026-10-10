@@ -16,6 +16,13 @@
 "Quit Tendedero" = "Salir de Tendedero";
 "Could not change the login setting" = "No se pudo cambiar el inicio de sesión";
 "Move Tendedero to the Applications folder and try again." = "Mueve Tendedero a la carpeta Aplicaciones y vuelve a intentarlo.";
+"Shortcut" = "Atajo";
+"Change Shortcut…" = "Cambiar atajo…";
+"Change Shortcut" = "Cambiar atajo";
+"None" = "Ninguno";
+"Space" = "Espacio";
+"Press the new shortcut" = "Pulsa el nuevo atajo";
+"Escape cancels. Delete removes the shortcut." = "Escape cancela. Borrar quita el atajo.";
 "Size" = "Tamaño";
 "Small" = "Pequeño";
 "Medium" = "Mediano";

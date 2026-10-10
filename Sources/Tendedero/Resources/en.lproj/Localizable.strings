@@ -18,6 +18,13 @@
 "Quit Tendedero" = "Quit Tendedero";
 "Could not change the login setting" = "Could not change the login setting";
 "Move Tendedero to the Applications folder and try again." = "Move Tendedero to the Applications folder and try again.";
+"Shortcut" = "Shortcut";
+"Change Shortcut…" = "Change Shortcut…";
+"Change Shortcut" = "Change Shortcut";
+"None" = "None";
+"Space" = "Space";
+"Press the new shortcut" = "Press the new shortcut";
+"Escape cancels. Delete removes the shortcut." = "Escape cancels. Delete removes the shortcut.";
 "Size" = "Size";
 "Small" = "Small";
 "Medium" = "Medium";
