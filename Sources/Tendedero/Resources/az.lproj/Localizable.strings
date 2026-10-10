@@ -18,6 +18,11 @@
 "Quit Tendedero" = "Tendedero-dan çıx";
 "Could not change the login setting" = "Giriş ayarını dəyişmək alınmadı";
 "Move Tendedero to the Applications folder and try again." = "Tendedero-nu Applications (Proqramlar) qovluğuna köçürün və yenidən cəhd edin.";
+"Also watch a folder" = "Bir qovluğu da izlə";
+"Choose Folder…" = "Qovluq seç…";
+"Stop Watching" = "İzləməyi dayandır";
+"Watch" = "İzlə";
+"New images saved to this folder will hang on the line." = "Bu qovluğa saxlanan yeni şəkillər ipdən asılacaq.";
 "Shortcut" = "Qısayol";
 "Change Shortcut…" = "Qısayolu dəyiş…";
 "Change Shortcut" = "Qısayolu dəyiş";

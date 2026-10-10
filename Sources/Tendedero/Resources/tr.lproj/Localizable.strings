@@ -16,6 +16,11 @@
 "Quit Tendedero" = "Tendedero'yu kapat";
 "Could not change the login setting" = "Giriş ayarı değiştirilemedi";
 "Move Tendedero to the Applications folder and try again." = "Tendedero'yu Uygulamalar klasörüne taşıyın ve tekrar deneyin.";
+"Also watch a folder" = "Bir klasörü de izle";
+"Choose Folder…" = "Klasör seç…";
+"Stop Watching" = "İzlemeyi durdur";
+"Watch" = "İzle";
+"New images saved to this folder will hang on the line." = "Bu klasöre kaydedilen yeni görseller ipe asılır.";
 "Shortcut" = "Kısayol";
 "Change Shortcut…" = "Kısayolu değiştir…";
 "Change Shortcut" = "Kısayolu değiştir";

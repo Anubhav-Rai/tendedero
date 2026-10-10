@@ -16,6 +16,11 @@
 "Quit Tendedero" = "Salir de Tendedero";
 "Could not change the login setting" = "No se pudo cambiar el inicio de sesión";
 "Move Tendedero to the Applications folder and try again." = "Mueve Tendedero a la carpeta Aplicaciones y vuelve a intentarlo.";
+"Also watch a folder" = "Vigilar también una carpeta";
+"Choose Folder…" = "Elegir carpeta…";
+"Stop Watching" = "Dejar de vigilar";
+"Watch" = "Vigilar";
+"New images saved to this folder will hang on the line." = "Las imágenes nuevas que se guarden en esta carpeta se colgarán en la cuerda.";
 "Shortcut" = "Atajo";
 "Change Shortcut…" = "Cambiar atajo…";
 "Change Shortcut" = "Cambiar atajo";

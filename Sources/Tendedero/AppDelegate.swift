@@ -14,6 +14,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     /// ignores the screenshot settings (macOS 27 renamed one), captures keep
     /// landing on the Desktop, and they still hang on the line.
     private var safetyWatcher: ScreenshotWatcher?
+    /// A folder chosen in "Also watch a folder", like the one another
+    /// screenshot app saves to.
+    private var folderWatcher: ScreenshotWatcher?
     private var clipboardWatcher: ClipboardWatcher!
     private var signalSources: [DispatchSourceSignal] = []
     private var hotKey: HotKey?
@@ -153,6 +156,42 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             safety.start()
             safetyWatcher = safety
         }
+        folderWatcher?.stop()
+        folderWatcher = nil
+        if let folder = Self.extraFolder,
+           ![watcher.folder, safetyWatcher?.folder].contains(where: { $0?.standardizedFileURL == folder.standardizedFileURL }) {
+            let extra = ScreenshotWatcher(
+                folder: folder,
+                onNew: { [weak self] url in self?.hangCapture(url) },
+                onChange: { [weak self] in self?.line.prune() })
+            extra.start()
+            folderWatcher = extra
+        }
+    }
+
+    /// The folder from "Also watch a folder", if it still exists. New images
+    /// in it hang like screenshots; taking one down leaves the file there.
+    static var extraFolder: URL? {
+        get {
+            guard let path = UserDefaults.standard.string(forKey: "extraFolder") else { return nil }
+            var isDir: ObjCBool = false
+            guard FileManager.default.fileExists(atPath: path, isDirectory: &isDir), isDir.boolValue else { return nil }
+            return URL(fileURLWithPath: path, isDirectory: true)
+        }
+        set { UserDefaults.standard.set(newValue?.path, forKey: "extraFolder") }
+    }
+
+    private func chooseExtraFolder() {
+        let panel = NSOpenPanel()
+        panel.canChooseDirectories = true
+        panel.canChooseFiles = false
+        panel.allowsMultipleSelection = false
+        panel.prompt = L("Watch")
+        panel.message = L("New images saved to this folder will hang on the line.")
+        NSApp.activate(ignoringOtherApps: true)
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+        Self.extraFolder = url
+        startWatcher()
     }
 
     private func setInbox(_ on: Bool) {
@@ -600,6 +639,26 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         options.addItem(fullScreen)
         bringDown.submenu = options
         menu.addItem(bringDown)
+
+        let folderItem = NSMenuItem(title: L("Also watch a folder"), action: nil, keyEquivalent: "")
+        let folderMenu = NSMenu()
+        if let folder = Self.extraFolder {
+            let current = ClosureMenuItem(FileManager.default.displayName(atPath: folder.path)) {
+                NSWorkspace.shared.open(folder)
+            }
+            current.state = .on
+            folderMenu.addItem(current)
+            folderMenu.addItem(.separator())
+        }
+        folderMenu.addItem(ClosureMenuItem(L("Choose Folder…")) { [weak self] in self?.chooseExtraFolder() })
+        if Self.extraFolder != nil {
+            folderMenu.addItem(ClosureMenuItem(L("Stop Watching")) { [weak self] in
+                AppDelegate.extraFolder = nil
+                self?.startWatcher()
+            })
+        }
+        folderItem.submenu = folderMenu
+        menu.addItem(folderItem)
 
         let sizeItem = NSMenuItem(title: L("Size"), action: nil, keyEquivalent: "")
         let sizes = NSMenu()
