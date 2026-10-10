@@ -45,6 +45,7 @@ Lleva el puntero a la barra de menús y la cuerda baja. Apártalo y desaparece.
 | Clic | Copia la imagen. |
 | Mantener pulsado | La abre en Marcación. |
 | Doble clic | La abre en Vista Previa. |
+| Clic fuerte | Le echa un vistazo con Vista Rápida. |
 | Arrastrar a una app | Envía una copia, y la captura sigue colgada. |
 | Arrastrar a una carpeta | Se queda ahí y sale de la cuerda. |
 | Arrastrar a la Papelera o hacer clic en la cruz | Te deshaces de ella. |

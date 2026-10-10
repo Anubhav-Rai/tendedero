@@ -43,6 +43,7 @@ Rest the pointer in the menu bar and it glides down. Move away and it's gone.
 | Click | Copy the image. |
 | Press and hold | Open it in Markup. |
 | Double click | Open it in Preview. |
+| Force click | Take a quick look. |
 | Drag into an app | Send a copy. It stays on the line. |
 | Drag into a folder | Keep it there. It leaves the line. |
 | Drag to the Trash, or click the cross | Let it go. |
