@@ -1,6 +1,6 @@
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="../images/hero-dark.png">
-  <img src="../images/hero-light.png" alt="Tendedero. Tus capturas, tendidas. Tres capturas en marcos de cristal cuelgan de una cuerda fina bajo la barra de menús de macOS.">
+  <source media="(prefers-color-scheme: dark)" srcset="../images/es/hero-dark.png">
+  <img src="../images/es/hero-light.png" alt="Tendedero. Tus capturas, tendidas. Tres capturas en marcos de cristal cuelgan de una cuerda fina bajo la barra de menús de macOS.">
 </picture>
 
 <p align="center">
@@ -10,7 +10,7 @@
   &nbsp;&nbsp;
   <a href="#compilar-desde-el-código">Compilar desde el código&nbsp;&rsaquo;</a>
   <br><br>
-  <a href="../../README.md">English</a>&nbsp;·&nbsp;Español
+  <a href="../../README.md">English</a>&nbsp;·&nbsp;Español&nbsp;·&nbsp;<a href="README.zh-Hans.md">简体中文</a>
   <br>
   <sub>Traducción del README en inglés. Si algo no coincide, manda el inglés.</sub>
 </p>
@@ -23,8 +23,8 @@ Cada captura que haces queda colgada en una cuerda justo encima de la pantalla.
 Lleva el puntero a la barra de menús y la cuerda baja. Apártalo y desaparece.
 
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="../images/demo-dark.gif">
-  <img src="../images/demo-light.gif" alt="El puntero toca el borde superior, la cuerda baja con tres capturas que se balancean, un clic copia una y la cuerda se recoge cuando el puntero se aparta.">
+  <source media="(prefers-color-scheme: dark)" srcset="../images/es/demo-dark.gif">
+  <img src="../images/es/demo-light.gif" alt="El puntero toca el borde superior, la cuerda baja con tres capturas que se balancean, un clic copia una y la cuerda se recoge cuando el puntero se aparta.">
 </picture>
 
 <br>
@@ -33,8 +33,8 @@ Lleva el puntero a la barra de menús y la cuerda baja. Apártalo y desaparece.
 ## Un gesto para cada cosa.
 
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="../images/bento-dark.png">
-  <img src="../images/bento-light.png" alt="Clic para copiar. Mantén pulsado para anotar. Arrastra para compartir. Y olvídate.">
+  <source media="(prefers-color-scheme: dark)" srcset="../images/es/bento-dark.png">
+  <img src="../images/es/bento-light.png" alt="Clic para copiar. Mantén para anotar. Arrastra para compartir. Y olvídate.">
 </picture>
 
 <br>
@@ -60,17 +60,20 @@ Deja que Tendedero se encargue de tus capturas<sup>1</sup> y dejarán de pasar
 por el Escritorio. Sin miniatura flotante ni cinco segundos de espera: cada
 captura se cuelga al momento, y solo se queda lo que tú saques de la cuerda.
 
+Las grabaciones de pantalla también se cuelgan, con un botón de play encima.
+Mantén pulsada una para recortarla.
+
 Los mismos atajos y las mismas costumbres. Pero sin desorden.
 
 <br>
 
 ## También las imágenes que copias.
 
-Haz una captura con <kbd>⌃</kbd> pulsado, o Copiar imagen en un navegador, y
-se cuelga como cualquier otra. Tendedero lo pregunta una vez al abrirse por
-primera vez, y puedes cambiarlo cuando quieras desde la barra de menús. Solo
-imágenes, nunca texto, y lo que un gestor de contraseñas marca como privado se
-deja tal cual.
+Haz una captura con <kbd>⌃</kbd> pulsado, o copia una imagen en Vista Previa,
+y se cuelga como cualquier otra. Activa Colgar imágenes copiadas en la barra
+de menús; mientras está activo, la camiseta se rellena. Solo imágenes: lo que
+se copia junto con texto o un archivo, y lo que un gestor de contraseñas marca
+como privado, se deja tal cual.
 
 <br>
 
@@ -87,7 +90,7 @@ Tendedero funciona solo en tu Mac, y tus capturas nunca salen de él.
 |:--|:--|
 | **Compatibilidad** | macOS 14 Sonoma o posterior, en Mac con Apple silicon o Intel. Pensado para macOS 27. |
 | **Tamaño** | 1,7 MB |
-| **Idiomas** | Inglés y español |
+| **Idiomas** | Inglés, español, chino simplificado, turco y azerbaiyano |
 | **Hecho con** | Swift, AppKit y SwiftUI |
 | **Conexión a internet** | No la usa |
 | **Precio** | Gratis |
@@ -139,6 +142,7 @@ vuelve a pedir acceso al Escritorio cada vez que recompilas.
 | `ClipboardWatcher.swift` | Se da cuenta de las imágenes copiadas |
 | `Inbox.swift` | Toma el control de los ajustes de captura y luego los devuelve |
 | `Markup.swift` | Abre el editor de Marcación del sistema y guarda el resultado |
+| `Trim.swift` | Recorta una grabación de pantalla y guarda el resultado |
 | `FullScreen.swift` | Sabe cuándo tiene que quedarse oculto |
 | `Line.swift` | Qué hay colgado y qué puedes hacer con ello |
 
