@@ -2,10 +2,12 @@ import Foundation
 
 /// Inbox mode: Tendedero takes over where screenshots go.
 ///
-/// It changes two macOS screenshot settings, the same ones in the Options
-/// menu of Cmd+Shift+5: the floating thumbnail is turned off, so the file is
-/// written at once instead of five seconds later, and the save location
-/// becomes Tendedero's own folder, so the Desktop only gets what you keep.
+/// It changes the macOS screenshot settings in the Options menu of
+/// Cmd+Shift+5: the floating thumbnail is turned off, so the file is written
+/// at once instead of five seconds later, and captures are saved as files in
+/// Tendedero's own folder, so the Desktop only gets what you keep. Saving to
+/// the clipboard or Preview would leave nothing to hang, and a click on the
+/// line copies anyway.
 /// Screen recordings go there too, and hang on the line like screenshots.
 ///
 /// The previous values are saved first and put back when the mode is turned
@@ -21,6 +23,12 @@ enum Inbox {
     /// Earlier versions send them wherever "location" points.
     private static let recordingLocationKey = "location-screenrecording" as CFString
     private static let thumbnailKey = "show-thumbnail" as CFString
+    /// Whether a capture is saved as a file or sent to the clipboard, Preview
+    /// and so on. macOS 26 and earlier read "target"; macOS 27 has one for
+    /// screenshots and one for recordings.
+    private static let targetKey = "target" as CFString
+    private static let screenshotTargetKey = "target-screenshot" as CFString
+    private static let recordingTargetKey = "target-screenrecording" as CFString
 
     private static let enabledKey = "inboxEnabled"
     private static let offeredKey = "inboxOffered"
@@ -61,16 +69,25 @@ enum Inbox {
             saved["locationScreenshot"] = CFPreferencesCopyAppValue(screenshotLocationKey, domain) as? String
             saved["thumbnail"] = CFPreferencesCopyAppValue(thumbnailKey, domain) as? Bool
         }
-        // Recordings came later: settings saved by an earlier version lack
-        // them, and the value macOS has now is still the user's own.
+        // Recordings and the target came later: settings saved by an earlier
+        // version lack them, and the value macOS has now is still the user's own.
         if saved["recordingSaved"] == nil {
             saved["locationRecording"] = CFPreferencesCopyAppValue(recordingLocationKey, domain) as? String
             saved["recordingSaved"] = true
+        }
+        if saved["targetSaved"] == nil {
+            saved["target"] = CFPreferencesCopyAppValue(targetKey, domain) as? String
+            saved["targetScreenshot"] = CFPreferencesCopyAppValue(screenshotTargetKey, domain) as? String
+            saved["targetRecording"] = CFPreferencesCopyAppValue(recordingTargetKey, domain) as? String
+            saved["targetSaved"] = true
         }
         UserDefaults.standard.set(saved, forKey: savedKey)
         set(locationKey, folder.path)
         set(screenshotLocationKey, folder.path)
         set(recordingLocationKey, folder.path)
+        set(targetKey, "file")
+        set(screenshotTargetKey, "file")
+        set(recordingTargetKey, "file")
         set(thumbnailKey, false)
     }
 
@@ -80,6 +97,9 @@ enum Inbox {
         set(locationKey, saved["location"])
         set(screenshotLocationKey, saved["locationScreenshot"])
         set(recordingLocationKey, saved["locationRecording"])
+        set(targetKey, saved["target"])
+        set(screenshotTargetKey, saved["targetScreenshot"])
+        set(recordingTargetKey, saved["targetRecording"])
         set(thumbnailKey, saved["thumbnail"])
         UserDefaults.standard.removeObject(forKey: savedKey)
     }
