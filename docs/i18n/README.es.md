@@ -67,6 +67,16 @@ Los mismos atajos y las mismas costumbres. Pero sin desorden.
 
 <br>
 
+## También las imágenes que copias.
+
+Haz una captura con <kbd>⌃</kbd> pulsado, o copia una imagen en Vista Previa,
+y se cuelga como cualquier otra. Activa Colgar imágenes copiadas en la barra
+de menús; mientras está activo, la camiseta se rellena. Solo imágenes: lo que
+se copia junto con texto o un archivo, y lo que un gestor de contraseñas marca
+como privado, se deja tal cual.
+
+<br>
+
 ## Privacidad de serie.
 
 Sin cuentas, sin conexión a internet, sin analíticas.
@@ -129,6 +139,7 @@ vuelve a pedir acceso al Escritorio cada vez que recompilas.
 | `PeggedView.swift` | Cada foto: marco de cristal, pinza, balanceo y brisa |
 | `GrabArea.swift` | Clic, pulsación larga, y arrastrar y soltar |
 | `ScreenshotWatcher.swift` | Se da cuenta de las capturas nuevas |
+| `ClipboardWatcher.swift` | Se da cuenta de las imágenes copiadas |
 | `Inbox.swift` | Toma el control de los ajustes de captura y luego los devuelve |
 | `Markup.swift` | Abre el editor de Marcación del sistema y guarda el resultado |
 | `Trim.swift` | Recorta una grabación de pantalla y guarda el resultado |

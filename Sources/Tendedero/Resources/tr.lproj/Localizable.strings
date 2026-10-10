@@ -16,6 +16,9 @@
 "Quit Tendedero" = "Tendedero'yu kapat";
 "Could not change the login setting" = "Giriş ayarı değiştirilemedi";
 "Move Tendedero to the Applications folder and try again." = "Tendedero'yu Uygulamalar klasörüne taşıyın ve tekrar deneyin.";
+"Hang copied images" = "Kopyalanan görselleri as";
+"Images you copy hang on the line too" = "Kopyaladığınız görseller de ipe asılır";
+"Tendedero, hanging copied images" = "Tendedero, kopyalanan görselleri asıyor";
 
 /* GrabArea */
 "Copy" = "Kopyala";

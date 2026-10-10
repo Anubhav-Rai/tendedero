@@ -14,6 +14,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     /// ignores the screenshot settings (macOS 27 renamed one), captures keep
     /// landing on the Desktop, and they still hang on the line.
     private var safetyWatcher: ScreenshotWatcher?
+    private var clipboardWatcher: ClipboardWatcher!
     private var signalSources: [DispatchSourceSignal] = []
     private var hotKey: HotKey?
     private var cancellables = Set<AnyCancellable>()
@@ -51,6 +52,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         if Inbox.isEnabled { Inbox.apply() }
         restoreSettingsOnTermination()
         startWatcher()
+        clipboardWatcher = ClipboardWatcher { [weak self] url in self?.hangCapture(url) }
+        if ClipboardWatcher.isEnabled { clipboardWatcher.start() }
 
         hotKey = HotKey(keyCode: kVK_ANSI_T, modifiers: controlKey | optionKey) { [weak self] in
             self?.toggle()
@@ -155,6 +158,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         if let icon = NSImage(named: "Tendedero") ?? NSApp.applicationIconImage { alert.icon = icon }
         NSApp.activate(ignoringOtherApps: true)
         if alert.runModal() == .alertFirstButtonReturn { setInbox(true) }
+    }
+
+    /// Watching the clipboard is opt in, from the menu bar only.
+    private func setClipboard(_ on: Bool) {
+        ClipboardWatcher.isEnabled = on
+        if on { clipboardWatcher.start() } else { clipboardWatcher.stop() }
+        updateStatusIcon()
     }
 
     /// Quitting from the menu or logging out runs applicationWillTerminate.
@@ -468,12 +478,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     private func setUpStatusItem() {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
-        let image = NSImage(systemSymbolName: "tshirt", accessibilityDescription: "Tendedero")
-        image?.isTemplate = true
-        statusItem.button?.image = image
+        updateStatusIcon()
         let menu = NSMenu()
         menu.delegate = self
         statusItem.menu = menu
+    }
+
+    /// The shirt fills in while copied images are hung, so it shows at a
+    /// glance that the clipboard is being watched.
+    private func updateStatusIcon() {
+        let on = ClipboardWatcher.isEnabled
+        let description = on ? L("Tendedero, hanging copied images") : "Tendedero"
+        let image = NSImage(systemSymbolName: on ? "tshirt.fill" : "tshirt", accessibilityDescription: description)
+        image?.isTemplate = true
+        statusItem.button?.image = image
+        statusItem.button?.toolTip = description
     }
 
     func menuNeedsUpdate(_ menu: NSMenu) {
@@ -498,6 +517,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         inbox.state = Inbox.isEnabled ? .on : .off
         inbox.toolTip = L("Screenshots hang instantly and skip the Desktop")
         menu.addItem(inbox)
+
+        let clipboard = ClosureMenuItem(L("Hang copied images")) { [weak self] in
+            self?.setClipboard(!ClipboardWatcher.isEnabled)
+        }
+        clipboard.state = ClipboardWatcher.isEnabled ? .on : .off
+        clipboard.toolTip = L("Images you copy hang on the line too")
+        menu.addItem(clipboard)
 
         menu.addItem(ClosureMenuItem(L("Open screenshots folder")) { [weak self] in
             guard let self else { return }
