@@ -43,6 +43,7 @@
 /* GrabArea */
 "Copy" = "Copiar";
 "Open" = "Abrir";
+"Quick Look" = "Vista Rápida";
 "Markup" = "Marcación";
 "Show in Finder" = "Mostrar en Finder";
 "Save to Desktop" = "Guardar en el Escritorio";

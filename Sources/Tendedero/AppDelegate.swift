@@ -1,6 +1,7 @@
 import AppKit
 import Carbon
 import Combine
+import Quartz
 import ServiceManagement
 import SwiftUI
 
@@ -741,4 +742,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             alert.runModal()
         }
     }
+
+    // MARK: Quick Look
+
+    /// With no window of ours in front, Quick Look finds its controller here.
+    override func acceptsPreviewPanelControl(_ panel: QLPreviewPanel!) -> Bool { true }
+
+    override func beginPreviewPanelControl(_ panel: QLPreviewPanel!) {
+        QuickLook.shared.take(panel)
+    }
+
+    override func endPreviewPanelControl(_ panel: QLPreviewPanel!) {
+        QuickLook.shared.release(panel)
+    }
+
 }

@@ -226,6 +226,13 @@ final class Line: ObservableObject {
         items[i].thumb = thumb
     }
 
+    /// Quick Look on this photo, with the rest of the line a key press away.
+    func quickLook(_ id: UUID) {
+        let live = items.filter { !$0.falling }
+        guard let index = live.firstIndex(where: { $0.id == id }) else { return }
+        QuickLook.shared.show(live.map(\.url), at: index)
+    }
+
     /// After a change of size, every photo is redrawn sharp at the new one.
     func reloadThumbnails() {
         for i in items.indices where !items[i].falling {

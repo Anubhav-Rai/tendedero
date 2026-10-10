@@ -41,11 +41,13 @@ struct GrabArea: NSViewRepresentable {
         view.onTrash = { line.trash(id) }
         view.onDiscard = { line.discard(id) }
         view.onLongPress = { line.markup(id) }
+        view.onForceClick = { line.quickLook(id) }
         view.onPressChange = { pressed in line.pressedID = pressed ? id : nil }
         view.menuProvider = {
             let menu = NSMenu()
             menu.addItem(ClosureMenuItem(L("Copy")) { line.copy(id) })
             menu.addItem(ClosureMenuItem(L("Open")) { line.open(id) })
+            menu.addItem(ClosureMenuItem(L("Quick Look")) { line.quickLook(id) })
             if !isRecording {
                 menu.addItem(ClosureMenuItem(L("Markup")) { line.markup(id) })
             }
@@ -78,6 +80,7 @@ final class GrabView: NSView, NSDraggingSource {
     var onTrash: () -> Void = {}
     var onDiscard: () -> Void = {}
     var onLongPress: () -> Void = {}
+    var onForceClick: () -> Void = {}
     var onPressChange: (Bool) -> Void = { _ in }
     var menuProvider: () -> NSMenu = { NSMenu() }
 
@@ -127,6 +130,15 @@ final class GrabView: NSView, NSDraggingSource {
                 self.onLongPress()
             }
         }
+    }
+
+    /// A force click on a trackpad opens Quick Look, as it does in Finder.
+    /// It counts instead of the click and of a long press.
+    override func pressureChange(with event: NSEvent) {
+        guard event.stage == 2, downPoint != nil, !startedDrag, !didLongPress else { return }
+        didLongPress = true
+        endPress()
+        onForceClick()
     }
 
     private func endPress() {
