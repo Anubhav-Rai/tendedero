@@ -16,6 +16,10 @@
 "Quit Tendedero" = "Salir de Tendedero";
 "Could not change the login setting" = "No se pudo cambiar el inicio de sesión";
 "Move Tendedero to the Applications folder and try again." = "Mueve Tendedero a la carpeta Aplicaciones y vuelve a intentarlo.";
+"Size" = "Tamaño";
+"Small" = "Pequeño";
+"Medium" = "Mediano";
+"Large" = "Grande";
 "Bring the line down" = "Bajar la cuerda";
 "When the pointer rests in the menu bar" = "Al dejar el puntero en la barra de menús";
 "When something new hangs" = "Cuando se cuelga algo nuevo";

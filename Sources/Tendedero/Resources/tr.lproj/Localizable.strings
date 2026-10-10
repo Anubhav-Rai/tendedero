@@ -16,6 +16,10 @@
 "Quit Tendedero" = "Tendedero'yu kapat";
 "Could not change the login setting" = "Giriş ayarı değiştirilemedi";
 "Move Tendedero to the Applications folder and try again." = "Tendedero'yu Uygulamalar klasörüne taşıyın ve tekrar deneyin.";
+"Size" = "Boyut";
+"Small" = "Küçük";
+"Medium" = "Orta";
+"Large" = "Büyük";
 "Bring the line down" = "İpi indir";
 "When the pointer rests in the menu bar" = "İşaretçi menü çubuğunda durduğunda";
 "When something new hangs" = "Yeni bir şey asıldığında";

@@ -226,6 +226,13 @@ final class Line: ObservableObject {
         items[i].thumb = thumb
     }
 
+    /// After a change of size, every photo is redrawn sharp at the new one.
+    func reloadThumbnails() {
+        for i in items.indices where !items[i].falling {
+            if let thumb = makeThumbnail(items[i].url) { items[i].thumb = thumb }
+        }
+    }
+
     func reveal(_ id: UUID) {
         guard let item = items.first(where: { $0.id == id }) else { return }
         NSWorkspace.shared.activateFileViewerSelecting([item.url])
@@ -285,7 +292,7 @@ func isRecording(_ url: URL) -> Bool {
 
 /// The default size covers a card at twice its size in points, as on a
 /// Retina screen, and no more: every photo on the line keeps one in memory.
-func makeThumbnail(_ url: URL, maxPixels: Int = 320) -> NSImage? {
+func makeThumbnail(_ url: URL, maxPixels: Int = Int(320 * Layout.size.scale)) -> NSImage? {
     if isRecording(url) { return firstFrame(url, maxPixels: maxPixels) }
     guard let source = CGImageSourceCreateWithURL(url as CFURL, nil) else { return nil }
     let options: [CFString: Any] = [

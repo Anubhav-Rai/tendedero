@@ -1,10 +1,31 @@
 import SwiftUI
 
 enum Layout {
-    static let panelHeight: CGFloat = 210
+    /// How big the photos hang, from Size in the menu bar. The clip, the rope
+    /// and the glass frame keep their size; the photos and the room they take
+    /// grow or shrink. Medium is the original size.
+    enum Size: String, CaseIterable {
+        case small, medium, large
+
+        var scale: CGFloat {
+            switch self {
+            case .small: 0.8
+            case .medium: 1
+            case .large: 1.35
+            }
+        }
+    }
+
+    static var size: Size {
+        get { Size(rawValue: UserDefaults.standard.string(forKey: "lineSize") ?? "") ?? .medium }
+        set { UserDefaults.standard.set(newValue.rawValue, forKey: "lineSize") }
+    }
+
+    static var photoMaxHeight: CGFloat { (104 * size.scale).rounded() }
+    static var cardWidth: CGFloat { (150 * size.scale).rounded() }
+    static var spacing: CGFloat { cardWidth + 24 }
+    static var panelHeight: CGFloat { photoMaxHeight + 106 }
     static let ropeTop: CGFloat = 10
-    static let spacing: CGFloat = 174
-    static let cardWidth: CGFloat = 150
     static let pinAbove: CGFloat = 9.5
 
     /// The rope hangs as a parabola from edge to edge of the screen.

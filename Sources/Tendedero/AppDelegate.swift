@@ -488,6 +488,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
     }
 
+    private func setSize(_ size: Layout.Size) {
+        guard size != Layout.size else { return }
+        Layout.size = size
+        panel.placeOnScreen(panel.screen)
+        updateCapacity()
+        line.reloadThumbnails()
+    }
+
     private func updateCapacity() {
         let usable = panel.frame.width - 200
         line.maxItems = max(3, min(12, Int(usable / Layout.spacing)))
@@ -564,6 +572,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         options.addItem(fullScreen)
         bringDown.submenu = options
         menu.addItem(bringDown)
+
+        let sizeItem = NSMenuItem(title: L("Size"), action: nil, keyEquivalent: "")
+        let sizes = NSMenu()
+        for (size, title) in [(Layout.Size.small, L("Small")), (.medium, L("Medium")), (.large, L("Large"))] {
+            let item = ClosureMenuItem(title) { [weak self] in self?.setSize(size) }
+            item.state = Layout.size == size ? .on : .off
+            sizes.addItem(item)
+        }
+        sizeItem.submenu = sizes
+        menu.addItem(sizeItem)
 
         menu.addItem(ClosureMenuItem(L("Open screenshots folder")) { [weak self] in
             guard let self else { return }
