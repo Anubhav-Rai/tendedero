@@ -5,8 +5,6 @@ import SwiftUI
 struct PeggedView: View {
     let item: Pegged
     @ObservedObject var line: Line
-    /// Scrolled out of view at the ends of a long line.
-    var hidden = false
 
     @State private var swing: Double = 0
     @State private var arrived = false
@@ -15,7 +13,6 @@ struct PeggedView: View {
     private var copied: Bool { line.copiedID == item.id }
     private var dragging: Bool { line.draggingID == item.id }
     private var pressed: Bool { line.pressedID == item.id }
-    private var zoomed: Bool { line.zoomedID == item.id }
 
     var body: some View {
         VStack(spacing: -12) {
@@ -30,7 +27,6 @@ struct PeggedView: View {
         .opacity(item.falling || item.flying ? 0 : (arrived ? 1 : 0))
         .transaction { t in if item.falling { t.animation = nil } }
         .animation(.easeOut(duration: 0.16), value: item.flying)
-        .allowsHitTesting(!hidden)
         .onAppear(perform: arrive)
         .onChange(of: item.flying) { was, now in if was && !now { land() } }
         .onChange(of: line.gust) { _, _ in breeze() }
@@ -39,26 +35,26 @@ struct PeggedView: View {
 
     /// The photo fits inside the card area keeping its proportions, so the
     /// white border hugs it whether the screenshot is wide or tall.
-    static func photoSize(for size: CGSize, zoom: CGFloat = 1) -> CGSize {
-        let maxW = (Layout.cardWidth - 14) * zoom, maxH: CGFloat = 104 * zoom
+    static func photoSize(for size: CGSize) -> CGSize {
+        let maxW = Layout.cardWidth - 14, maxH = Layout.photoMaxHeight
         guard size.width > 0, size.height > 0 else { return CGSize(width: maxW, height: maxH) }
         let scale = min(maxW / size.width, maxH / size.height)
         return CGSize(width: size.width * scale, height: size.height * scale)
     }
 
     /// The card around the photo: the photo plus the glass inset.
-    static func cardSize(for size: CGSize, zoom: CGFloat = 1) -> CGSize {
-        let p = photoSize(for: size, zoom: zoom)
+    static func cardSize(for size: CGSize) -> CGSize {
+        let p = photoSize(for: size)
         return CGSize(width: p.width + Frame.inset * 2, height: p.height + Frame.inset * 2)
     }
 
     /// Distance from the top of the hanging view (the clip) to the card.
     static let cardOffsetBelowTop: CGFloat = 26 - 12
 
-    private var photoSize: CGSize { Self.photoSize(for: item.thumb.size, zoom: zoomed ? line.zoomLevel : 1) }
+    private var photoSize: CGSize { Self.photoSize(for: item.thumb.size) }
 
     private var card: some View {
-        Image(nsImage: zoomed && line.sharp?.id == item.id ? line.sharp!.image : item.thumb)
+        Image(nsImage: item.thumb)
             .resizable()
             .interpolation(.high)
             .frame(width: photoSize.width, height: photoSize.height)
@@ -69,19 +65,30 @@ struct PeggedView: View {
                 RoundedRectangle(cornerRadius: Frame.radius - Frame.inset, style: .continuous)
                     .strokeBorder(Color.white.opacity(0.18), lineWidth: 0.5)
             )
+            .overlay {
+                // A recording says so with a play button over its first frame.
+                if item.isRecording {
+                    Image(systemName: "play.fill")
+                        .font(.system(size: 11, weight: .bold))
+                        .foregroundStyle(.primary)
+                        .frame(width: 28, height: 28)
+                        .glassFrame(circle: true)
+                        .allowsHitTesting(false)
+                }
+            }
             .padding(Frame.inset)
             .glassFrame(cornerRadius: Frame.radius)
-            // The card really grows, so clicks, drags and the cross work all over it.
-            .animation(.spring(response: 0.34, dampingFraction: 0.78), value: zoomed)
             .shadow(color: .black.opacity(hovering ? 0.26 : 0.18), radius: hovering ? 14 : 10, y: hovering ? 8 : 5)
             // Holding presses the photo in slowly, so a long press feels like
             // it is building up to something.
-            .scaleEffect(pressed ? 0.95 : (hovering && !Line.zoomOnHover ? 1.035 : 1), anchor: .top)
+            .scaleEffect(pressed ? 0.95 : (hovering ? 1.035 : 1), anchor: .top)
             .animation(pressed ? .easeInOut(duration: 0.45) : .spring(response: 0.3, dampingFraction: 0.6), value: pressed)
             .opacity(dragging ? 0.45 : 1)
             .overlay(alignment: .topLeading) {
-                // Drawn here, clicked through GrabView, which sits on top.
-                Image(systemName: "xmark")
+                // Drawn here, clicked through GrabView, which sits on top. A
+                // cross sends a file in Tendedero's folder to the Trash; for a
+                // file anywhere else it only hides it from the line.
+                Image(systemName: line.isInInbox(item.id) ? "xmark" : "eye.slash")
                     .font(.system(size: 8, weight: .bold))
                     .foregroundStyle(.primary)
                     .frame(width: 20, height: 20)
@@ -106,27 +113,18 @@ struct PeggedView: View {
             }
             .animation(.easeOut(duration: 0.18), value: hovering)
             .animation(.easeOut(duration: 0.2), value: copied)
-            .onHover { inside in
-                hovering = inside
-                if inside {
-                    line.hoveredID = item.id
-                } else if line.hoveredID == item.id {
-                    line.hoveredID = nil
-                    line.zoomLevel = Layout.zoom
-                }
-            }
+            .onHover { hovering = $0 }
             .background(
                 GeometryReader { g in
                     Color.clear.preference(key: HitRectsKey.self,
-                                           value: item.falling || hidden ? [:] : [item.id: g.frame(in: .global)])
+                                           value: item.falling ? [:] : [item.id: g.frame(in: .global)])
                 }
             )
     }
 
     private func arrive() {
         // A capture that flew in is already in place; the flight did the arriving.
-        // Scrolled back into view: it has been hanging there all along.
-        if item.flying || Date().timeIntervalSince(item.hungAt) > 2 {
+        if item.flying {
             arrived = true
             return
         }

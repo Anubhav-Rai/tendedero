@@ -1,4 +1,5 @@
 import AppKit
+import AVFoundation
 import Combine
 import os
 
@@ -11,10 +12,11 @@ struct Pegged: Identifiable, Equatable {
     var thumb: NSImage
     /// Every photo hangs a little crooked, like on a real line.
     let tilt = Double.random(in: -2.5...2.5)
-    let hungAt = Date()
     var falling = false
     /// Still flying in from where it was captured; the card waits hidden.
     var flying = false
+    /// A screen recording rather than a screenshot.
+    var isRecording: Bool { Tendedero.isRecording(url) }
 
     static func == (a: Pegged, b: Pegged) -> Bool {
         a.id == b.id && a.falling == b.falling && a.flying == b.flying && a.thumb === b.thumb
@@ -30,44 +32,6 @@ final class Line: ObservableObject {
     @Published var copiedID: UUID?
     @Published var draggingID: UUID?
     @Published var pressedID: UUID?
-    /// The photo under the pointer.
-    @Published var hoveredID: UUID? { didSet { if hoveredID != oldValue { loadSharp() } } }
-
-    /// Cards keep a small preview so a long line stays light. Only the
-    /// zoomed one loads a sharp version.
-    static let thumbPixels = 420
-    @Published private(set) var sharp: (id: UUID, image: NSImage)?
-
-    private func loadSharp() {
-        guard Line.zoomOnHover, let id = hoveredID, let item = items.first(where: { $0.id == id }) else {
-            sharp = nil
-            return
-        }
-        if sharp?.id == id { return }
-        sharp = makeThumbnail(item.url).map { (id, $0) }
-    }
-
-    /// Photos grow in place while the pointer rests on them.
-    nonisolated static var zoomOnHover: Bool {
-        get { UserDefaults.standard.bool(forKey: "zoomOnHover") }
-        set { UserDefaults.standard.set(newValue, forKey: "zoomOnHover") }
-    }
-
-    /// How large the zoomed photo is. Starts at the hover zoom, follows a
-    /// scroll over the photo, and goes back when the pointer leaves.
-    @Published var zoomLevel: CGFloat = Layout.zoom
-
-    func zoom(_ id: UUID, by amount: CGFloat) {
-        guard Line.zoomOnHover else { return }
-        hoveredID = id
-        zoomLevel = min(Layout.maxZoom, max(1, zoomLevel * (1 + amount)))
-    }
-
-    /// The photo shown zoomed: the hovered one, unless it is being dragged or held.
-    var zoomedID: UUID? {
-        guard Line.zoomOnHover, draggingID == nil, pressedID == nil else { return nil }
-        return hoveredID
-    }
     /// Whether the line has slid down into view.
     @Published var revealed = false
 
@@ -75,48 +39,23 @@ final class Line: ObservableObject {
     /// uses them to only catch clicks over photos and let the rest through.
     var hitRects: [UUID: CGRect] = [:]
 
-    /// How many items the line keeps before the oldest falls off.
-    var maxItems = Line.keepCount
+    var maxItems = 8
+    /// How many photos fit across the screen. With Keep on line set, the
+    /// line can hold more, and the rest are reached by scrolling.
+    var visibleCount = 8
+    /// How far the line is scrolled towards older photos, in points; 0 shows
+    /// the newest.
+    @Published var scroll: CGFloat = 0
 
-    static let keepChoices = Array(stride(from: 10, through: 500, by: 10))
-    static var keepCount: Int {
-        get { (UserDefaults.standard.object(forKey: "keepCount") as? Int) ?? 30 }
-        set { UserDefaults.standard.set(newValue, forKey: "keepCount") }
-    }
-
-    /// How many cards fit across the screen at once. With more than that,
-    /// the line shows the newest at the right and a sideways swipe scrolls
-    /// back through the older ones.
-    var visibleSlots = 8
-    /// How many places the line is scrolled back from the newest item.
-    @Published var offset: CGFloat = 0
-
-    var maxOffset: CGFloat { CGFloat(max(0, items.count - visibleSlots)) }
-
-    func rotate(by amount: CGFloat) {
-        offset = min(maxOffset, max(0, offset + amount))
-    }
-
-    /// Steps whole cards at a time, for the arrows and a mouse wheel.
-    func step(by cards: CGFloat) {
-        offset = min(maxOffset, max(0, offset.rounded() + cards))
-    }
-
-    /// Settles on a whole card after a swipe.
-    func settle() {
-        offset = min(maxOffset, max(0, offset.rounded()))
-    }
-
-    /// Where an item hangs across the line, and how far it sits outside the
-    /// visible stretch, in cards (0 when fully visible).
-    func place(of index: Int, width: CGFloat) -> (x: CGFloat, overflow: CGFloat) {
-        let count = items.count
-        guard count > visibleSlots else { return (Layout.x(index: index, count: count, width: width), 0) }
-        let slots = CGFloat(visibleSlots)
-        let rightX = width / 2 + (slots - 1) / 2 * Layout.spacing
-        let fromRight = CGFloat(count - 1 - index) - min(offset, maxOffset)
-        let overflow = max(0, fromRight - (slots - 1), -fromRight)
-        return (rightX - fromRight * Layout.spacing, overflow)
+    /// Keep on line, from the menu bar: how many photos the line keeps, or
+    /// nil for as many as fit across the screen.
+    nonisolated static let keepChoices = [25, 50, 100]
+    nonisolated static var keepOnLine: Int? {
+        get {
+            let n = UserDefaults.standard.integer(forKey: "keepOnLine")
+            return keepChoices.contains(n) ? n : nil
+        }
+        set { UserDefaults.standard.set(newValue ?? 0, forKey: "keepOnLine") }
     }
 
 
@@ -139,23 +78,20 @@ final class Line: ObservableObject {
     @discardableResult
     func hang(_ url: URL, quietly: Bool = false, flying: Bool = false) -> UUID? {
         guard !items.contains(where: { $0.url == url && !$0.falling }),
-              let thumb = makeThumbnail(url, maxPixels: Line.thumbPixels) else { return nil }
+              let thumb = makeThumbnail(url) else { return nil }
         var item = Pegged(url: url, thumb: thumb)
         item.flying = flying
         items.append(item)
-        // Something new: the line goes back to showing the newest.
-        offset = 0
-        trim()
+        scroll = 0
+        // A full line lets the oldest photo fall off the far end. Only one: a
+        // line hung on a wider screen keeps its length here instead of losing
+        // several photos to a single capture.
+        if liveCount > maxItems, let oldest = items.first(where: { !$0.falling }) {
+            letGo(oldest.id)
+        }
         save()
         if !quietly { play("Tink", volume: 0.35) }
         return item.id
-    }
-
-    /// A full line lets the oldest photo fall off the far end.
-    func trim() {
-        while liveCount > maxItems, let oldest = items.first(where: { !$0.falling }) {
-            drop(oldest.id, quietly: true)
-        }
     }
 
     /// The capture has reached the line: the real card takes over.
@@ -180,11 +116,12 @@ final class Line: ObservableObject {
         }
     }
 
+    /// "Take everything down": every photo goes the way of its corner cross.
     func clear() {
         let live = items.filter { !$0.falling }
         for (n, item) in live.enumerated() {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.06 * Double(n)) { [weak self] in
-                self?.drop(item.id, quietly: n > 0)
+                self?.discard(item.id, quietly: n > 0)
             }
         }
     }
@@ -201,7 +138,8 @@ final class Line: ObservableObject {
     func copy(_ id: UUID) {
         guard let item = items.first(where: { $0.id == id }) else { return }
         let entry = NSPasteboardItem()
-        if let png = pngData(item.url) { entry.setData(png, forType: .png) }
+        // A recording is copied as the file, which apps paste as the video.
+        if !item.isRecording, let png = pngData(item.url) { entry.setData(png, forType: .png) }
         entry.setString(item.url.absoluteString, forType: .fileURL)
         let pb = NSPasteboard.general
         pb.clearContents()
@@ -221,16 +159,19 @@ final class Line: ObservableObject {
     /// Moves the file to the Trash and takes the photo off the line. When a
     /// drag ends on the Dock's Trash, macOS only reports it: deleting the file
     /// is the source app's job, as Finder does.
-    func trash(_ id: UUID) {
-        guard let item = items.first(where: { $0.id == id }) else { return }
+    @discardableResult
+    func trash(_ id: UUID, quietly: Bool = false) -> Bool {
+        guard let item = items.first(where: { $0.id == id }) else { return false }
         do {
             try FileManager.default.trashItem(at: item.url, resultingItemURL: nil)
             log.notice("Trashed \(item.url.lastPathComponent, privacy: .public)")
-            if soundOn { Line.trashSound?.play() }
+            if soundOn && !quietly { Line.trashSound?.play() }
             drop(id, quietly: true)
+            return true
         } catch {
             log.error("Could not trash \(item.url.path, privacy: .public): \(error.localizedDescription, privacy: .public)")
-            NSSound.beep()
+            if !quietly { NSSound.beep() }
+            return false
         }
     }
 
@@ -247,8 +188,32 @@ final class Line: ObservableObject {
     }
 
     /// The corner cross and "Take down" both end up here.
-    func discard(_ id: UUID) {
-        if isInInbox(id) { trash(id) } else { drop(id) }
+    func discard(_ id: UUID, quietly: Bool = false) {
+        if isInInbox(id) { trash(id, quietly: quietly) } else { drop(id, quietly: quietly) }
+    }
+
+    /// The oldest photo falling off a full line. Like the cross, a file from
+    /// Tendedero's folder goes to the Trash, or nothing would ever take it out
+    /// of that folder. If the Trash refuses it, it still leaves the line.
+    /// Moves along a line that holds more than fit, from a scroll gesture.
+    func scroll(by delta: CGFloat) {
+        let most = CGFloat(max(0, items.count - visibleCount)) * Layout.spacing
+        let next = min(most, max(0, scroll + delta))
+        if next != scroll { scroll = next }
+    }
+
+    /// After Keep on line is lowered, the oldest photos past it go the way
+    /// of a full line.
+    func trim() {
+        while liveCount > maxItems, let oldest = items.first(where: { !$0.falling }) {
+            letGo(oldest.id)
+        }
+        scroll = 0
+    }
+
+    private func letGo(_ id: UUID) {
+        if isInInbox(id), trash(id, quietly: true) { return }
+        drop(id, quietly: true)
     }
 
     /// Inbox mode: keep a screenshot by moving it to the Desktop.
@@ -277,18 +242,36 @@ final class Line: ObservableObject {
         return candidate
     }
 
-    /// Long press: open the photo in the system Markup editor.
+    /// Long press: open the photo in the system Markup editor. Markup does
+    /// not edit video, so a recording opens in the trimming editor instead.
     func markup(_ id: UUID) {
         guard let item = items.first(where: { $0.id == id }) else { return }
-        Markup.shared.edit(item.url)
+        if item.isRecording {
+            Trim.shared.edit(item.url, size: item.thumb.size)
+        } else {
+            Markup.shared.edit(item.url)
+        }
     }
 
     /// After editing, the photo on the line shows the new version.
     func reloadThumbnail(for url: URL) {
         guard let i = items.firstIndex(where: { $0.url == url && !$0.falling }),
-              let thumb = makeThumbnail(url, maxPixels: Line.thumbPixels) else { return }
+              let thumb = makeThumbnail(url) else { return }
         items[i].thumb = thumb
-        if sharp?.id == items[i].id { sharp = nil; loadSharp() }
+    }
+
+    /// Quick Look on this photo, with the rest of the line a key press away.
+    func quickLook(_ id: UUID) {
+        let live = items.filter { !$0.falling }
+        guard let index = live.firstIndex(where: { $0.id == id }) else { return }
+        QuickLook.shared.show(live.map(\.url), at: index)
+    }
+
+    /// After a change of size, every photo is redrawn sharp at the new one.
+    func reloadThumbnails() {
+        for i in items.indices where !items[i].falling {
+            if let thumb = makeThumbnail(items[i].url) { items[i].thumb = thumb }
+        }
     }
 
     func reveal(_ id: UUID) {
@@ -315,10 +298,15 @@ final class Line: ObservableObject {
         UserDefaults.standard.set(paths, forKey: storeKey)
     }
 
+    /// Everything comes back as it was. This runs before the line knows its
+    /// screen, so the capacity is still the default one: hanging through
+    /// `hang` would let photos fall off a wide screen's line at every launch.
     private func restore() {
         let paths = UserDefaults.standard.stringArray(forKey: storeKey) ?? []
         for path in paths where FileManager.default.fileExists(atPath: path) {
-            hang(URL(fileURLWithPath: path), quietly: true)
+            let url = URL(fileURLWithPath: path)
+            guard !items.contains(where: { $0.url == url }), let thumb = makeThumbnail(url) else { continue }
+            items.append(Pegged(url: url, thumb: thumb))
         }
     }
 
@@ -338,8 +326,15 @@ final class Line: ObservableObject {
     }
 }
 
-// Sharp enough for a zoomed photo on a Retina display.
-func makeThumbnail(_ url: URL, maxPixels: Int = 1400) -> NSImage? {
+/// Screen recordings, as macOS saves them.
+func isRecording(_ url: URL) -> Bool {
+    ["mov", "mp4"].contains(url.pathExtension.lowercased())
+}
+
+/// The default size covers a card at twice its size in points, as on a
+/// Retina screen, and no more: every photo on the line keeps one in memory.
+func makeThumbnail(_ url: URL, maxPixels: Int = Int(320 * Layout.size.scale)) -> NSImage? {
+    if isRecording(url) { return firstFrame(url, maxPixels: maxPixels) }
     guard let source = CGImageSourceCreateWithURL(url as CFURL, nil) else { return nil }
     let options: [CFString: Any] = [
         kCGImageSourceCreateThumbnailFromImageAlways: true,
@@ -347,5 +342,14 @@ func makeThumbnail(_ url: URL, maxPixels: Int = 1400) -> NSImage? {
         kCGImageSourceThumbnailMaxPixelSize: maxPixels,
     ]
     guard let cg = CGImageSourceCreateThumbnailAtIndex(source, 0, options as CFDictionary) else { return nil }
+    return NSImage(cgImage: cg, size: NSSize(width: cg.width, height: cg.height))
+}
+
+/// A recording shows its first frame.
+private func firstFrame(_ url: URL, maxPixels: Int) -> NSImage? {
+    let generator = AVAssetImageGenerator(asset: AVURLAsset(url: url))
+    generator.appliesPreferredTrackTransform = true
+    generator.maximumSize = CGSize(width: maxPixels, height: maxPixels)
+    guard let cg = try? generator.copyCGImage(at: .zero, actualTime: nil) else { return nil }
     return NSImage(cgImage: cg, size: NSSize(width: cg.width, height: cg.height))
 }
