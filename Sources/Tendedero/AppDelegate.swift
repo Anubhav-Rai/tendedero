@@ -617,7 +617,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     /// The shirt fills in while copied images are hung, so it shows at a
     /// glance that the clipboard is being watched. It is dimmed while the
     /// line is empty, so resting in the menu bar and seeing nothing come down
-    /// does not look broken, and carries a count once something hangs.
+    /// does not look broken. It always carries a count, a dimmed 0 included.
     private func updateStatusIcon() {
         let on = ClipboardWatcher.isEnabled
         let count = line.liveCount
@@ -625,7 +625,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let state = count == 0 ? L("The line is empty") : String(format: L("%d on the line"), count)
         guard let symbol = NSImage(systemSymbolName: on ? "tshirt.fill" : "tshirt",
                                    accessibilityDescription: "\(description), \(state)") else { return }
-        let image = count == 0 ? symbol : Self.badged(symbol, count: count)
+        let image = Self.badged(symbol, count: count)
         image.isTemplate = true
         statusItem.button?.image = image
         statusItem.button?.appearsDisabled = count == 0
