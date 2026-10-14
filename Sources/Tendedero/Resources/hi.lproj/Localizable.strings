@@ -33,7 +33,7 @@
 "None" = "कोई नहीं";
 "Space" = "Space";
 "Press the new shortcut" = "नया शॉर्टकट दबाएँ";
-"Escape cancels. Delete removes the shortcut." = "Escape से रद्द करें। Delete से शॉर्टकट हट जाता है।";
+"Escape cancels. Delete removes the shortcut." = "Escape दबाने से रद्द होता है। Delete से शॉर्टकट हट जाता है।";
 "Size" = "आकार";
 "Small" = "छोटा";
 "Medium" = "मध्यम";
